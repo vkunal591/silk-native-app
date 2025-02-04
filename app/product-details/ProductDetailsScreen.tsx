@@ -9,6 +9,7 @@ import {
     FlatList,
     Alert,
     Pressable,
+    ToastAndroid,
 } from 'react-native';
 import { addToCart, API_BASE_URL, fetchProductById, fetchProductSearch } from '@/services/api';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -29,45 +30,36 @@ const ProductDetailsScreen = () => {
     const [quantity, setQuantity] = useState(1);
 
     // Alert.alert("Product",)
-    // useEffect(() => {
-    //     const fetchProductDetails = async () => {
-    //         setIsLoading(true);
-    //         try {
-    //             const response = await fetchProductById(productId);
-    //             setProductData(response.products || {});
-    //         } catch (error) {
-    //             console.error('Error fetching product details:', error);
-    //         } finally {
-    //             setIsLoading(false);
-    //         }
-    //     };
+    useEffect(() => {
+        const fetchProductList = async () => {
+            try {
+                const response = await fetchProductSearch('Silk').then((res: any) => {
+                    console.log("Data", response)
+                    setProductList(res || []);
+                })
+            } catch (error) {
+                console.error('Error fetching product list:', error);
+            }
+        };
 
-    //     const fetchProductList = async () => {
-    //         try {
-    //             const response = await fetchProductSearch('Silk');
-    //             setProductList(response.products || []);
-    //         } catch (error) {
-    //             console.error('Error fetching product list:', error);
-    //         }
-    //     };
-
-    //     fetchProductDetails();
-    //     fetchProductList();
-    // }, [productId]);
+        fetchProductList();
+    }, [productData?._id]);
 
     const handleQuantityIncrease = () => setQuantity(quantity + 1);
     const handleQuantityDecrease = () => setQuantity(Math.max(1, quantity - 1));
 
-    const handleAddToCart = async () => {
+    const handleAddToCart = async (_id: any) => {
         router.push('/cart/CartScreen');
 
         try {
-            await addToCart(productId, quantity);
-            Alert.alert('Success', 'Product added to cart!');
-            router.push('/cart/CartScreen');
+            await addToCart(_id, quantity).then(() => {
+
+                ToastAndroid.show('Product added to cart.', 2000);
+                router.push('/cart/CartScreen');
+            })
         } catch (error) {
             console.error('Error adding product to cart:', error);
-            Alert.alert('Error', 'Could not add product to cart. Try again.');
+            ToastAndroid.show('Could not add product to cart. Login try again.', 2000);
         }
     };
 
@@ -94,17 +86,13 @@ const ProductDetailsScreen = () => {
                         <View style={styles.variationOptions}>
                             <Text style={styles.variationText}>Colors:</Text>
                             {productData.colors.map((color: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined, index: React.Key | null | undefined) => (
-                                // <TouchableOpacity key={index} style={styles.variationButton}>
-                                <Text>{color}</Text>
-                                // </TouchableOpacity>
+                                <Text key={index}>{color}</Text>
                             ))}
                         </View>
                         <View style={styles.variationOptions}>
                             <Text style={styles.variationText}>Sizes:</Text>
                             {productData.sizes.map((size: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined, index: React.Key | null | undefined) => (
-                                // <TouchableOpacity key={index} style={styles.variationButton}>
-                                <Text>{size}</Text>
-                                // </TouchableOpacity>
+                                <Text key={index}>{size}</Text>
                             ))}
                         </View>
                     </View>
@@ -132,12 +120,33 @@ const ProductDetailsScreen = () => {
                         horizontal
                         renderItem={({ item }) => (
                             <Pressable
-                            // onPress={() => navigation.navigate('ProductDetails', { productId: item._id })}
+                                onPress={() => router.push({
+                                    pathname: "/product-details/ProductDetailsScreen",
+                                    params: {
+                                        product: JSON.stringify(item)
+                                    }
+                                })}
                             >
-                                <View style={styles.card}>
-                                    <Image source={{ uri: `${API_BASE_URL}/${item.images || ''}` }} style={styles.cardImage} />
-                                    <Text style={styles.cardProTitle}>{item.name}</Text>
-                                    <Text style={styles.cardPrice}>₹{item.price}</Text>
+                                <View style={styles.cardContainer}>
+                                    <Image source={{ uri: `${API_BASE_URL}/${item.images[0]}` }} style={styles.image} />
+                                    <View style={styles.infoContainer}>
+                                        <Text style={styles.title} numberOfLines={1}>
+                                            {item.name}
+                                        </Text>
+
+                                        <View style={styles.subInfoContainer}>
+                                            <Text style={styles.price}>₹{item.price}</Text>
+
+                                            {/* Product Rating */}
+
+                                            <TouchableOpacity style={styles.rating} onPress={() => handleAddToCart(item?._id)} >
+
+                                                <MaterialCommunityIcons name="cart-plus" size={30} color={Colors.PRIMARY} />
+
+                                            </TouchableOpacity>
+
+                                        </View>
+                                    </View>
                                 </View>
                             </Pressable>
                         )}
@@ -161,7 +170,7 @@ const ProductDetailsScreen = () => {
                         </Text>
                     </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
+                <TouchableOpacity style={styles.cartButton} onPress={() => handleAddToCart(productData?._id)}>
                     <Text style={styles.cartText}>
                         Add to
                     </Text>
@@ -194,9 +203,9 @@ const styles: any = StyleSheet.create({
     variationText: { marginRight: 10, marginLeft: 8, fontWeight: 'bold' },
     variationButton: { padding: 5, borderWidth: 1, borderRadius: 4, borderColor: '#DDD', marginRight: 8 },
     ratingReviews: { padding: 16 },
-    mostPopular: { paddingHorizontal: 16, marginBottom: 85 },
+    mostPopular: { paddingHorizontal: 16, marginBottom: 15 },
     sectionHeader: { flex: 1, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 5, backgroundColor: Colors?.SHADE_WHITE, borderTopWidth: 1, borderColor: Colors.PRIMARY },
+    footer: { flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 5, backgroundColor: Colors?.SHADE_WHITE },
 
     /** Add these missing styles **/
     quantityControls: { flexDirection: 'row', alignItems: 'center', justifyContent: "space-between", marginRight: 16, width: 160 },
@@ -246,5 +255,63 @@ const styles: any = StyleSheet.create({
     },
     cart: { marginLeft: 10 },
     cartText: { textAlign: 'center', color: Colors?.PRIMARY, fontWeight: 'bold', fontSize: 16 },
+    cardContainer: {
+        backgroundColor: 'transparent',
+        borderRadius: 10,
+        margin: 10,
+        marginHorizontal: 4,
+        padding: 0,
+        elevation: 0,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        alignItems: 'center',
+        width: 175,
+    },
+    image: {
+        width: '100%',
+        height: 190,
+        borderRadius: 10,
+        borderWidth: 4,
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 4,
+        borderColor: '#FFF',
+    },
+    infoContainer: {
+        marginTop: 10,
+        width: "100%",
+        alignItems: 'flex-start', // Changed 'left' to 'flex-start'
+    },
+    title: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#333',
+        textAlign: 'left',
+        width: "100%",
+    },
+    subInfoContainer: {
+        width: "100%",
+        flexDirection: 'row',
+        justifyContent: "space-between",
+        paddingHorizontal: 10
+    },
+    price: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: '#FF6F61',
+        marginTop: 5,
+    },
+    ratingContainer: {
+        marginTop: 5,
+    },
+    rating: {
+        fontSize: 14,
+        marginLeft: 5,
+        color: '#555',
+    },
 });
 
