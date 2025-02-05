@@ -104,14 +104,23 @@ const CartScreen = () => {
         await fetchCartDetails();
         setRefreshing(false);
     };
+    
+    useFocusEffect(
+        React.useCallback(() => {
+            // console.log('CartScreen is now focused');
+            fetchCartDetails();
+          // return () => console.log('CartScreen lost focus');
+        }, [])
+      );
 
-    useEffect(() => {
-        fetchCartDetails();
-    }, []);
+      useFocusEffect(
+        React.useCallback(() => {
+          // console.log('CartScreen is now focused');
+          calculateTotalPrice();
+          // return () => console.log('CartScreen lost focus');
+        }, [cartItems])
+      );
 
-    useEffect(() => {
-        calculateTotalPrice();
-    }, [cartItems]);
 
     useFocusEffect(
         React.useCallback(() => {

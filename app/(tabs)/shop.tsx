@@ -4,15 +4,16 @@ import ProductCard from '@/components/ProductCard';
 import ProductGrid from '@/components/ProductGrid';
 import TopCategories from '@/components/TopCategories';
 import { addToCart, fetchCategory, fetchProducts } from '@/services/api';
-import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import { Text, ScrollView, View, StyleSheet, Alert, RefreshControl, ToastAndroid } from 'react-native';
+import { router, useFocusEffect, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Text, ScrollView, View, StyleSheet, RefreshControl, ToastAndroid, TouchableOpacity } from 'react-native';
 
 
 const Shop = () => {
     const [products, setProducts] = useState([]);
     const [category, setCategory] = useState([])
     const [refreshing, setRefreshing] = useState(false)
+    const [searchInput, setSearchInput] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const router = useRouter();
     const getProducts = async () => {
@@ -67,10 +68,19 @@ const Shop = () => {
         setRefreshing(false);
     };
 
-    useEffect(() => {
-        getProducts();
-        getCategory()
-    }, []);
+    // useEffect(() => {
+    //     getProducts();
+    //     getCategory()
+    // }, []);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            // console.log('CartScreen is now focused');
+            getProducts();
+            getCategory();
+            // return () => console.log('CartScreen lost focus');
+        }, [])
+    );
 
     return (
         <View style={styles.container}
@@ -79,7 +89,8 @@ const Shop = () => {
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             >
 
-                <Header Title="Shop" /> {/* Animated Slide Down */}
+                <Header Title="shop" searchInput={searchInput} setSearchInput={setSearchInput} onSearchClick={() => router.push({ pathname: '/Shop/ShopScreen', params: { search: searchInput } })} />
+
                 <BannerSlider /> {/* Animated Fade In */}
                 {(category.length !== 0) && <TopCategories category={category} />}
                 <Section title="New Items">
@@ -107,7 +118,12 @@ const Section = ({ title, children }: any) => (
     <View style={styles.section}>
         <View style={styles.sectionTitleContainer}>
             <Text style={styles.sectionTitle}>{title}</Text>
-            <Text style={styles.sectionButton}>See All</Text>
+            <TouchableOpacity onPress={() => router.push({
+                pathname: "/Shop/ShopScreen",
+            })}>
+
+                <Text style={styles.sectionButton} >See All</Text>
+            </TouchableOpacity>
         </View>
         <ScrollView horizontal>{children}</ScrollView>
     </View>

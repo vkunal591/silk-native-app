@@ -9,16 +9,11 @@ import {
   Dimensions,
   Pressable,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 import { API_BASE_URL } from '../services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/contants/Colors';
+import { router } from 'expo-router';
 
-const { width } = Dimensions.get('window');
-
-type RootStackParamList = {
-  ProductDetails: { productId: string };
-};
 
 
 const ProductGrid = ({
@@ -30,13 +25,12 @@ const ProductGrid = ({
   title: string;
   itemData: { _id: string; images: string[]; name: string; price: number; rating?: number }[];
   onAddToCart: (id: string) => void;
-  onViewDetails: (id: string) => void;
+  onViewDetails: (data: any) => void;
 }) => {
-  //   const navigation = useNavigation<NavigationProps>();
 
   const renderItem = ({ item }: { item: { _id: string; images: string[]; name: string; price: number; rating?: number } }) => (
     <Pressable
-      onPress={() => onViewDetails(item?._id)}
+      onPress={() => onViewDetails(item)}
     >
       <View style={styles.cardContainer}>
         {/* Product Image */}
@@ -82,7 +76,12 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
   <View style={styles.section}>
     <View style={styles.sectionTitleContainer}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionButton}>See All</Text>
+      <TouchableOpacity onPress={() => router.push({
+        pathname: "/Shop/ShopScreen",
+      })}>
+
+        <Text style={styles.sectionButton}>See All</Text>
+      </TouchableOpacity>
     </View>
     {children}
   </View>

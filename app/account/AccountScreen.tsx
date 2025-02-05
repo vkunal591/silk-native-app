@@ -14,7 +14,7 @@ import {
   fetchOrders,
 } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 // import PushNotification from 'react-native-push-notification';
 // import Icon from 'react-native-vector-icons/Ionicons';
 // import messaging from '@react-native-firebase/messaging';  // Import messaging for push notifications
@@ -49,25 +49,25 @@ const AccountScreen = () => {
     }
   };
 
-//   const configurePushNotifications = async () => {
-//     const authStatus = await messaging().requestPermission();
-//     const enabled =
-//       authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-//       authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+  //   const configurePushNotifications = async () => {
+  //     const authStatus = await messaging().requestPermission();
+  //     const enabled =
+  //       authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+  //       authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-//     if (enabled) {
-//       const token = await messaging().getToken();
-//       console.log('FCM Token:', token);
-//     }
+  //     if (enabled) {
+  //       const token = await messaging().getToken();
+  //       console.log('FCM Token:', token);
+  //     }
 
-//     messaging().onMessage(async (remoteMessage: { notification: { title: any; body: any; }; }) => {
-//       console.log('Foreground Notification:', remoteMessage);
-//       PushNotification.localNotification({
-//         title: remoteMessage.notification.title,
-//         message: remoteMessage.notification.body,
-//       });
-//     });
-//   };
+  //     messaging().onMessage(async (remoteMessage: { notification: { title: any; body: any; }; }) => {
+  //       console.log('Foreground Notification:', remoteMessage);
+  //       PushNotification.localNotification({
+  //         title: remoteMessage.notification.title,
+  //         message: remoteMessage.notification.body,
+  //       });
+  //     });
+  //   };
 
   // Handle user logout
   const handleLogout = async () => {
@@ -85,11 +85,14 @@ const AccountScreen = () => {
     }
   };
 
-  useEffect(() => {
-    loadUserProfile();
-    loadOrders(activeTab);
-    // configurePushNotifications();
-  }, [activeTab]);
+  useFocusEffect(
+    React.useCallback(() => {
+      // console.log('CartScreen is now focused');
+      loadUserProfile();
+      loadOrders(activeTab);
+      // return () => console.log('CartScreen lost focus');
+    }, [activeTab])
+  );
 
   return (
     <ScrollView style={styles.container}>
@@ -105,8 +108,8 @@ const AccountScreen = () => {
             <Text style={styles.profileName}>Sweta</Text>
             <Text style={styles.profileEmail}>sweta@example.com</Text>
           </View>
-          <TouchableOpacity 
-        //   onPress={() => router.push('EditProfile')}
+          <TouchableOpacity
+          //   onPress={() => router.push('EditProfile')}
           >
             {/* <Icon name="create-outline" size={20} color="#000" /> */}
           </TouchableOpacity>

@@ -7,12 +7,11 @@ import {
     StyleSheet,
     TouchableOpacity,
 } from 'react-native';
-import { fetchCategory, API_BASE_URL } from '../services/api';
+import { API_BASE_URL } from '../services/api';
 import { useRouter } from 'expo-router';
 
-const TopCategories = ({category}:any) => {
+const TopCategories = ({ category }: any) => {
     const router = useRouter();
-  
 
     return (
         <View style={styles.container}>
@@ -20,7 +19,7 @@ const TopCategories = ({category}:any) => {
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {category && category.map((item: { image: any; name: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | Iterable<React.ReactNode> | React.ReactPortal | null | undefined; }, index: React.Key | null | undefined) => (
                     <TouchableOpacity key={index}
-                        onPress={() => router.push('/explore/ExploreScreen')}
+                        onPress={() => router.push('/(tabs)/explore')}
                     >
                         <View style={styles.item}>
                             <Image source={{ uri: `${API_BASE_URL}/${item.image}` }} style={styles.image} />
@@ -30,7 +29,7 @@ const TopCategories = ({category}:any) => {
                 ))}
                 {/* View All Button */}
                 <TouchableOpacity
-                // onPress={() => navigation.navigate('Explore')}
+                    onPress={() => router.push('/(tabs)/explore')}
                 >
                     <View style={styles.item}>
                         <Image source={require('../assets/images/adaptive-icon.png')} style={styles.image} />
