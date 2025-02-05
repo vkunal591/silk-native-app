@@ -1,3 +1,4 @@
+import { useFocusEffect } from 'expo-router';
 import React, { useRef, useState, useEffect } from 'react';
 import {
   View,
@@ -37,15 +38,20 @@ const BannerSlider = () => {
   const flatListRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  useEffect(() => {
-    const autoSlide = setInterval(() => {
-      let nextIndex = (currentIndex + 1) % slides.length;
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-      setCurrentIndex(nextIndex);
-    }, 3000);
-
-    return () => clearInterval(autoSlide);
-  }, [currentIndex]);
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      // console.log('CartScreen is now focused');
+      const autoSlide = setInterval(() => {
+        let nextIndex = (currentIndex + 1) % slides.length;
+        flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+        setCurrentIndex(nextIndex);
+      }, 3000);
+    
+      return () => clearInterval(autoSlide);
+      // return () => console.log('CartScreen lost focus');
+    }, [currentIndex])
+  );
 
   const onScroll = (event: { nativeEvent: { contentOffset: { x: any; }; }; }) => {
     const offsetX = event.nativeEvent.contentOffset.x;

@@ -153,8 +153,10 @@ export const fetchProductById = async (id: any) => {
 // Example: Fetch Catyegory
 export const fetchProductSearch = async (name: any) => {
     try {
-        const response = await api.get(`/api/products/search/?name=${name}`);
-        return response.data;
+        const res = await api.get(`/api/products/search/?name=${name}`)
+        if (res.status) {
+            return res?.data;
+        }
     } catch (error) {
         console.error('Error fetching products:', error);
         throw error;
@@ -256,7 +258,72 @@ export const fetchCartItemRemove = async (productId: any) => {
 
 
 
+// export const fetchUpdateAddress = async (address: any) => {
+//     try {
+//         // Retrieve the auth token from AsyncStorage
+//         const authToken = await AsyncStorage.getItem('authToken');
+//         if (!authToken) {
+//             throw new Error('Authentication token is missing.');
+//         }
+
+//         console.log('Auth Token:', authToken);
+//         console.log(address)
+//         // Make the DELETE request
+//         const response = await api.put(
+//             'https://server.silkindia.co.in/api/auth/update-profile',
+//             {
+//                 headers: {
+//                     Authorization: `Bearer ${authToken}`, // Include the token in the headers
+//                     'Content-Type': 'application/json', // Optional: Specify JSON payload
+//                 },
+//                 data: { address },
+//             }
+//         );
+
+//         console.log('Address Update Successfully:', response.data);
+//         return response.data; // Return the response data
+//     } catch (error: any) {
+//         console.error('Error address faield update:', error.message);
+//         throw error; // Rethrow the error for caller handling
+//     }
+// };
+
 export const fetchUpdateAddress = async (address: any) => {
+    try {
+        // Retrieve the auth token from AsyncStorage
+        const authToken = await AsyncStorage.getItem('authToken');
+
+        if (!authToken) {
+            throw new Error('Authentication token is missing.');
+        }
+
+        console.log('Auth Token:', authToken);
+        const data = JSON.stringify({ 'address': address });
+
+        // Make the PUT request
+        const response = await api.put(
+            'https://server.silkindia.co.in/api/auth/update-profile',
+            // The data you want to update, make sure it's structured correctly
+            data,
+            {
+                headers: {
+                    Authorization: `Bearer ${authToken}`, // Include the token in the headers
+                    'Content-Type': 'application/json', // Specify JSON payload
+                },
+            }
+        );
+
+        console.log('Address Update Successfully:', response.data);
+        return response.data; // Return the response data
+
+    } catch (error: any) {
+        console.error('Error address update failed:', error.message);
+        throw error; // Rethrow the error for caller handling
+    }
+};
+
+
+export const fetchPlaceOrder = async () => {
     try {
         // Retrieve the auth token from AsyncStorage
         const authToken = await AsyncStorage.getItem('authToken');
@@ -266,22 +333,27 @@ export const fetchUpdateAddress = async (address: any) => {
 
         console.log('Auth Token:', authToken);
 
-        // Make the DELETE request
-        const response = await api.put(
-            'https://server.silkindia.co.in/api/auth/update-profile',
+        // Make the GET request
+        const response = await api.post(
+            'https://server.silkindia.co.in/api/orders/place', // API endpoint
             {
-                headers: { Authorization: `Bearer ${authToken}` },
-                data: { address },
+                headers: {
+                    Authorization: `Bearer ${authToken}`, // Include the token in the headers
+                    'Content-Type': 'application/json', // Optional: Specify JSON payload
+                },
+                // data: { productId: id },
             }
         );
 
-        console.log('Item Deleted Successfully:', response.data);
-        return response.data; // Return the response data
+        console.log('Order Placed:', response.data);
+        return response; // Return the cart details
     } catch (error: any) {
-        console.error('Error deleting cart item:', error.message);
+        console.error('Error placing order order:', error.message);
         throw error; // Rethrow the error for caller handling
     }
 };
+
+
 
 // Example: Fetch User Profile
 export const fetchUserProfile = async () => {

@@ -7,6 +7,7 @@ import {
   Image,
   Alert,
   ScrollView,
+  ToastAndroid,
 } from 'react-native';
 import {
   fetchUserProfile,
@@ -14,7 +15,9 @@ import {
   fetchOrders,
 } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Entypo, EvilIcons, MaterialIcons } from '@expo/vector-icons';
+import { Colors } from '@/contants/Colors';
 // import PushNotification from 'react-native-push-notification';
 // import Icon from 'react-native-vector-icons/Ionicons';
 // import messaging from '@react-native-firebase/messaging';  // Import messaging for push notifications
@@ -27,9 +30,10 @@ const Account = () => {
 
   const loadUserProfile = async () => {
     try {
-      const cachedProfile = await AsyncStorage.getItem('userProfile');
+      const cachedProfile = await AsyncStorage.getItem('userData');
       if (cachedProfile) {
         setUserProfile(JSON.parse(cachedProfile));
+        console.log(cachedProfile)
       } else {
         const profile = await fetchUserProfile();
         setUserProfile(profile);
@@ -75,7 +79,7 @@ const Account = () => {
       await fetchUserLogout();
 
       router.push('/auth/signin'); // Navigate back to the sign-in screen after logout
-      Alert.alert('Success', 'You have successfully logged out!');
+      ToastAndroid.show('Success', 'You have successfully logged out!');
     } catch (error) {
       console.error('Error during logout:', error);
       Alert.alert(
@@ -85,39 +89,47 @@ const Account = () => {
     }
   };
 
-  useEffect(() => {
-    loadUserProfile();
-    loadOrders(activeTab);
-    // configurePushNotifications();
-  }, [activeTab]);
+  // useEffect(() => {
+  //   loadUserProfile();
+  //   loadOrders(activeTab);
+  //   // configurePushNotifications();
+  // }, [activeTab]);
 
+
+    useFocusEffect(
+      React.useCallback(() => {
+        // console.log('CartScreen is now focused');
+        loadUserProfile();
+        loadOrders(activeTab);
+        // return () => console.log('CartScreen lost focus');
+      }, [activeTab])
+    );
   return (
     <ScrollView style={styles.container}>
       {/* Profile Section */}
       <View style={styles.profileSection}>
         <Text style={styles.sectionTitle}>Profile</Text>
         <View style={styles.profileInfo}>
-          <Image
-            source={{ uri: 'https://via.placeholder.com/100' }}
+          <EvilIcons name='user'
+          size={60}
             style={styles.profileImage}
           />
           <View style={styles.profileDetails}>
-            <Text style={styles.profileName}>Sweta</Text>
-            <Text style={styles.profileEmail}>sweta@example.com</Text>
+            <Text style={styles.profileName}>{userProfile?.name}</Text>
+            <Text style={styles.profileEmail}>{userProfile?.email}</Text>
           </View>
           <TouchableOpacity 
-        //   onPress={() => router.push('EditProfile')}
           >
-            {/* <Icon name="create-outline" size={20} color="#000" /> */}
+            <MaterialIcons name="logout" size={30} color={Colors.PRIMARY} />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Orders Section */}
       <View style={styles.ordersContainer}>
-        <Text style={styles.sectionTitle}>My Orders</Text>
+        <Text style={styles.sectionTitle}>My Profile</Text>
         <View style={styles.tabs}>
-          {['To Pay', 'To Receive', 'History'].map((tab) => (
+          {['View Profile'].map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === tab && styles.activeTab]}
@@ -126,7 +138,7 @@ const Account = () => {
             </TouchableOpacity>
           ))}
         </View>
-        <View style={styles.orderList}>
+        {/* <View style={styles.orderList}>
           {orders.length > 0 ? (
             orders.map((order, index) => (
               <Text key={index}>{order}</Text> // Dynamically render orders
@@ -134,12 +146,12 @@ const Account = () => {
           ) : (
             <Text>No orders available</Text>
           )}
-        </View>
+        </View> */}
       </View>
 
-      <TouchableOpacity style={styles.guestButton} onPress={handleLogout}>
+      {/* <TouchableOpacity style={styles.guestButton} onPress={handleLogout}>
         <Text style={styles.guestButtonText}>Continue As Guest</Text>
-      </TouchableOpacity>
+      </TouchableOpacity> */}
     </ScrollView>
   );
 };

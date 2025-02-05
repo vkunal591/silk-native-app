@@ -10,11 +10,13 @@ import {
     Modal,
     TextInput,
     Alert,
+    ToastAndroid,
 } from 'react-native';
 // import Icon from 'react-native-vector-icons/Ionicons';
 import {
     fetchCart,
     fetchCartItemRemove,
+    fetchPlaceOrder,
     fetchUpdateAddress,
 } from '../../services/api';
 import { useFocusEffect } from '@react-navigation/native';
@@ -29,10 +31,12 @@ const Cart = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [totalPrice, setTotalPrice] = useState(0);
     const [address, setAddress] = useState({
-        street: '',
-        city: '',
-        state: '',
-        zipCode: '',
+        streetAddress: "",
+        landMark: "",
+        city: "",
+        state: "",
+        country: "",
+        pincode: ""
     });
     const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
     const [newAddress, setNewAddress] = useState('');
@@ -45,14 +49,14 @@ const Cart = () => {
     const handleSubmitAddress = async () => {
         console.log('Submitting address:', address);
 
-        if (!address.street || !address.city || !address.state || !address.zipCode) {
+        if (!address.streetAddress || !address.landMark || !address.country || !address.city || !address.state || !address.pincode) {
             Alert.alert('Error', 'Please fill in all address fields.');
             return;
         }
 
         try {
             const response = await fetchUpdateAddress(address);
-            if (response.status === 200) {
+            if (response.status) {
                 setIsAddressModalVisible(false);
                 Alert.alert('Address', 'Address submitted successfully');
             }
@@ -105,34 +109,56 @@ const Cart = () => {
     const onRefresh = async () => {
         setRefreshing(true);
         await fetchCartDetails();
-        
+
         calculateTotalPrice();
         setRefreshing(false);
     };
 
-    useEffect(() => {
-        fetchCartDetails();
-    }, []);
-
-    useEffect(() => {
-        calculateTotalPrice();
-    }, [cartItems]);
-
     useFocusEffect(
         React.useCallback(() => {
-            console.log('CartScreen is now focused');
+            // console.log('CartScreen is now focused');
             fetchCartDetails();
-            return () => console.log('CartScreen lost focus');
+            // return () => console.log('CartScreen lost focus');
         }, [])
     );
 
-    const handlePlaceOrder = () => {
-        router.push('/account/AccountScreen')
-        if (!address.street || !address.city || !address.state || !address.zipCode) {
-            Alert.alert('Address Required', 'Please add or update your shipping address before placing the order.');
-            return;
+    useFocusEffect(
+        React.useCallback(() => {
+            // console.log('CartScreen is now focused');   
+            calculateTotalPrice();
+            // return () => console.log('CartScreen lost focus');
+        }, [cartItems])
+    );
+
+    useFocusEffect(
+        React.useCallback(() => {
+            // console.log('CartScreen is now focused');
+            fetchCartDetails();
+            // return () => console.log('CartScreen lost focus');
+        }, [])
+    );
+
+    const handlePlaceOrder = async () => {
+        // if (!address.streetAddress || !address.city || !address.state || !address.zipCode) {
+        //     Alert.alert('Address Required', 'Please add or update your shipping address before placing the order.');
+        //     return;
+        // }
+
+        try {
+
+
+            const res: any = await fetchPlaceOrder();
+            if (res.status) {
+
+                ToastAndroid.show('Your order has been placed successfully!', 2000);
+                router.push('/(tabs)/account')
+            } else {
+                ToastAndroid.show('Add to cart, Plz try again!', 2000);
+
+            }
+        } catch (error) {
+            ToastAndroid.show("Add to cart, Please try again", 2000)
         }
-        Alert.alert('Order Placed', 'Your order has been placed successfully!');
     };
 
     return (
@@ -185,7 +211,7 @@ const Cart = () => {
                 />
 
                 <View style={styles.footer}>
-                    <Text style={styles.totalPrice}>{"Total ₹ "+totalPrice.toFixed(2) || 0}</Text>
+                    <Text style={styles.totalPrice}>{"Total ₹ " + totalPrice.toFixed(2) || 0}</Text>
                     <TouchableOpacity style={styles.checkoutButton} onPress={handlePlaceOrder}>
                         <Text style={styles.checkoutText}>Place Order</Text>
                     </TouchableOpacity>
@@ -196,15 +222,15 @@ const Cart = () => {
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalHeader}>Update Address</Text>
-                        {['street', 'city', 'state', 'zipCode'].map((field) => (
-                            <TextInput key={field} placeholder={field} value={address[field]} onChangeText={(value) => handleAddressChange(field, value)} style={styles.input} />
+                        {['streetAddress', "landMark", 'city', 'state', 'country', 'pincode'].map((field) => (
+                            <TextInput key={field} placeholder={`Please enter your ${field}`} value={address[field]} onChangeText={(value) => handleAddressChange(field, value)} style={styles.input} />
                         ))}
                         <View style={styles.modalActions}>
                             <TouchableOpacity onPress={handleSubmitAddress} style={styles.submitButton}>
-                                <Text style={styles.buttonText}>Submit</Text>
+                                <Text style={styles.buttonText} >Submit</Text>
                             </TouchableOpacity>
                             <TouchableOpacity onPress={() => setIsAddressModalVisible(false)} style={styles.cancelButton}>
-                                <Text style={styles.buttonText}>Cancel</Text>
+                                <Text>Cancel</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -255,7 +281,7 @@ const styles = StyleSheet.create({
         marginLeft: 16,
         backgroundColor: '#F5F5F5',
         borderRadius: 5,
-        padding:5
+        padding: 5
     },
     quantityButton: {
         width: 30,
@@ -286,7 +312,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         paddingHorizontal: 16,
-        paddingVertical:5,
+        paddingVertical: 5,
         backgroundColor: '#F5F5F5',
         borderTopWidth: 1,
         borderColor: '#DDD',
@@ -326,13 +352,16 @@ const styles = StyleSheet.create({
     submitButton: {
         padding: 10,
         backgroundColor: Colors?.SHADE_WHITE,
-        color:Colors?.PRIMARY,
+        color: Colors?.PRIMARY,
         borderRadius: 8,
         marginRight: 10,
     },
+    buttonText: {
+        color: Colors.PRIMARY
+    },
     cancelButton: {
         padding: 10,
-        backgroundColor: '#555',
+        backgroundColor: Colors?.SHADE_WHITE,
         borderRadius: 8,
     },
 });

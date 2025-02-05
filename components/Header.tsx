@@ -1,20 +1,26 @@
 // Header.js
 import { Colors } from '@/contants/Colors';
-import { Ionicons } from '@expo/vector-icons';
+import { Entypo, Ionicons } from '@expo/vector-icons';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, Animated, Pressable, Touchable, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 // import Icon from 'react-native-vector-icons/FontAwesome';
 
-const Header = ({ Title }: any) => {
+const Header = ({ Title, searchInput, setSearchInput, onSearchClick }: any) => {
   const slideDown = useRef(new Animated.Value(-100)).current; // Starts above the screen
 
-  useEffect(() => {
-    Animated.timing(slideDown, {
-      toValue: 0, // Move back to its natural position
-      duration: 800,
-      useNativeDriver: true, // Optimized for better performance
-    }).start();
-  }, []);
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      // console.log('CartScreen is now focused');
+      Animated.timing(slideDown, {
+        toValue: 0, // Move back to its natural position
+        duration: 800,
+        useNativeDriver: true, // Optimized for better performance
+      }).start();
+      // return () => console.log('CartScreen lost focus');
+    }, [])
+  );
 
   return (
     <Animated.View
@@ -22,11 +28,14 @@ const Header = ({ Title }: any) => {
         styles.headerContainer,
         { transform: [{ translateY: slideDown }] },
       ]}>
-      <Text style={styles.title}>{Title}</Text>
+      <Text style={styles.title} onPress={()=>{if(Title==="shop")router.replace('/(tabs)/shop')}}><Entypo name={Title} size={30} color={Colors.PRIMARY} /></Text>
       <View style={styles.inputWrapper}>
         {/* <Icon name="search" size={20} color="gray" style={styles.icon} /> */}
-        <TextInput placeholder="Search" style={styles.searchBar} />
-        <TouchableOpacity>
+        <TextInput placeholder="Search"
+          style={styles.searchBar}
+          value={searchInput}
+          onChangeText={(value) => setSearchInput(value)} />
+        <TouchableOpacity onPress={onSearchClick}>
           <Ionicons name='search' size={25} style={styles.searchIcon} color={Colors?.PRIMARY} />
         </TouchableOpacity>
       </View>
@@ -48,7 +57,7 @@ const styles = StyleSheet.create({
     // shadowOpacity: 0.1,
     // shadowRadius: 5,
   },
-  title: { fontSize: 22, fontWeight: 'bold', width: '20%', marginLeft: 10 },
+  title: { fontSize: 22, fontWeight: 'bold', width: '10%', marginLeft: 10 },
   searchBar: {
     width: '85%',
     backgroundColor: '#fff',
@@ -66,7 +75,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 25,
     paddingHorizontal: 15,
-    width: '70%',
+    width: '80%',
     marginRight: 10,
   },
   icon: {

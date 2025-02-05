@@ -15,6 +15,7 @@ import { addToCart, API_BASE_URL, fetchProductById, fetchProductSearch } from '@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Entypo, Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/contants/Colors';
+import { useFocusEffect } from 'expo-router';
 
 
 const imgPlaceholder = require('../../assets/images/women.jpeg');
@@ -30,32 +31,40 @@ const ProductDetailsScreen = () => {
     const [quantity, setQuantity] = useState(1);
 
     // Alert.alert("Product",)
-    useEffect(() => {
-        const fetchProductList = async () => {
-            try {
-                const response = await fetchProductSearch('Silk').then((res: any) => {
-                    console.log("Data", response)
-                    setProductList(res || []);
-                })
-            } catch (error) {
-                console.error('Error fetching product list:', error);
-            }
-        };
 
-        fetchProductList();
-    }, [productData?._id]);
+    const fetchProductList = async () => {
+        try {
+            const res = await fetchProductSearch('Silk');
+            console.log("Datas", res)
+            setProductList(res?.products || []);
+
+        } catch (error) {
+            console.error('Error fetching product list:', error);
+        }
+    };
+    useFocusEffect(
+        React.useCallback(() => {
+          // console.log('CartScreen is now focused');
+          fetchProductList();
+  
+          // return () => console.log('CartScreen lost focus');
+        }, [productData?._id])
+      );
+
+
+
 
     const handleQuantityIncrease = () => setQuantity(quantity + 1);
     const handleQuantityDecrease = () => setQuantity(Math.max(1, quantity - 1));
 
     const handleAddToCart = async (_id: any) => {
-        router.push('/cart/CartScreen');
+        router.push('/(tabs)/cart');
 
         try {
             await addToCart(_id, quantity).then(() => {
 
                 ToastAndroid.show('Product added to cart.', 2000);
-                router.push('/cart/CartScreen');
+                router.push('/(tabs)/cart');
             })
         } catch (error) {
             console.error('Error adding product to cart:', error);

@@ -1,5 +1,6 @@
 import { fetchCategory, fetchSubCategory, API_BASE_URL } from '@/services/api';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -34,11 +35,15 @@ export default function Explore() {
             console.error('Error loading subcategories:', error);
         }
     };
+    useFocusEffect(
+        React.useCallback(() => {
+            // console.log('CartScreen is now focused');
+            getCategory();
+            getSubCategory();
 
-    useEffect(() => {
-        getCategory();
-        getSubCategory();
-    }, []);
+            // return () => console.log('CartScreen lost focus');
+        }, [])
+    );
 
     const handleExpand = (categoryId: React.SetStateAction<null>) => {
         setExpandedCategory(categoryId === expandedCategory ? null : categoryId);
