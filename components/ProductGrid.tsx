@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Dimensions,
+  Pressable,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { API_BASE_URL } from '../services/api';
@@ -16,7 +17,7 @@ import { Colors } from '@/contants/Colors';
 const { width } = Dimensions.get('window');
 
 type RootStackParamList = {
-  ProductDetails: { productId: string};
+  ProductDetails: { productId: string };
 };
 
 
@@ -28,13 +29,13 @@ const ProductGrid = ({
 }: {
   title: string;
   itemData: { _id: string; images: string[]; name: string; price: number; rating?: number }[];
-  onAddToCart:(id:string)=>void;
-  onViewDetails:(id:string)=>void;
+  onAddToCart: (id: string) => void;
+  onViewDetails: (id: string) => void;
 }) => {
   //   const navigation = useNavigation<NavigationProps>();
 
   const renderItem = ({ item }: { item: { _id: string; images: string[]; name: string; price: number; rating?: number } }) => (
-    <TouchableOpacity
+    <Pressable
       onPress={() => onViewDetails(item?._id)}
     >
       <View style={styles.cardContainer}>
@@ -61,7 +62,7 @@ const ProductGrid = ({
           </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </Pressable>
   );
 
   return (

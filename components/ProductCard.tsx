@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
 import { API_BASE_URL } from '../services/api';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -8,39 +8,32 @@ import { Colors } from '@/contants/Colors';
 const ProductCard = ({ product, onViewDetails, onAddToCart }: any) => {
 
     return (
-        <TouchableOpacity onPress={()=>onViewDetails(product)}
-        >
+        <Pressable onPress={() => onViewDetails(product)}>
             <View style={styles.cardContainer}>
-                {/* Product Image */}
                 <Image
                     source={{ uri: `${API_BASE_URL}/${product?.images}` }}
                     style={styles.image}
                 />
-
                 {/* Product Info */}
                 <View style={styles.infoContainer}>
                     <Text style={styles.title} numberOfLines={1}>
                         {product?.name}
                     </Text>
-
                     <View style={styles.subInfoContainer}>
                         <Text style={styles.price}>₹{product?.price}</Text>
-
-                        {/* Product Rating */}
                         <View style={styles.ratingContainer}>
-                            {/* <Icon name="star" size={16} color="#FFD700" /> */}
-                            <TouchableOpacity style={styles.rating}
-                                onPress={()=>onAddToCart(product?._id)}
+                            <Pressable style={styles.rating}
+                                onPress={() => onAddToCart(product?._id)}
                             >
 
                                 <MaterialCommunityIcons name="cart-plus" size={30} color={Colors.PRIMARY} />
 
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
                 </View>
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 };
 
@@ -94,7 +87,7 @@ const styles = StyleSheet.create({
     },
     rating: {
         fontSize: 14,
-        padding:1,
+        padding: 1,
         marginLeft: 5,
         color: '#555',
     },

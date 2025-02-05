@@ -1,9 +1,11 @@
 // Header.js
+import { Colors } from '@/contants/Colors';
+import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, Animated } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Animated, Pressable, Touchable, TouchableOpacity } from 'react-native';
 // import Icon from 'react-native-vector-icons/FontAwesome';
 
-const Header = ({ Title }:any) => {
+const Header = ({ Title }: any) => {
   const slideDown = useRef(new Animated.Value(-100)).current; // Starts above the screen
 
   useEffect(() => {
@@ -24,6 +26,9 @@ const Header = ({ Title }:any) => {
       <View style={styles.inputWrapper}>
         {/* <Icon name="search" size={20} color="gray" style={styles.icon} /> */}
         <TextInput placeholder="Search" style={styles.searchBar} />
+        <TouchableOpacity>
+          <Ionicons name='search' size={25} style={styles.searchIcon} color={Colors?.PRIMARY} />
+        </TouchableOpacity>
       </View>
     </Animated.View>
   );
@@ -45,10 +50,13 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 22, fontWeight: 'bold', width: '20%', marginLeft: 10 },
   searchBar: {
-    width: '90%',
+    width: '85%',
     backgroundColor: '#fff',
     padding: 7,
     margin: 5,
+  },
+  searchIcon: {
+    marginRight: 20
   },
   inputWrapper: {
     flexDirection: 'row',

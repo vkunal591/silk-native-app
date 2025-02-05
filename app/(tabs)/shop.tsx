@@ -87,6 +87,7 @@ const Shop = () => {
                         products?.map((product, index) => {
                             return (
                                 <ProductCard
+                                    key={index}
                                     product={product}
                                     onViewDetails={handleViewDetails}
                                     onAddToCart={handleAddToCart}
