@@ -1,4 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import {
   View,
   Text,
@@ -12,6 +14,28 @@ import {
 
 export default function Index() {
   const router = useRouter();
+
+  useEffect(() => {
+    const checkLoginStatus = async () => {
+      const firstTime = await AsyncStorage.getItem('isFirstTime');
+      const token = await AsyncStorage.getItem('accessToken');
+      console.log(token)
+      if (token || firstTime) {
+        router.replace('/(tabs)/shop');  // Redirect to the shop if already logged in
+      }
+    };
+    checkLoginStatus();
+  }, []);
+
+
+  const setFirstTimeVisitor = async () => {
+
+    await AsyncStorage.setItem('isFirstTime', 'true'); // Mark as not first time after intro
+
+  };
+
+
+
   return (
     <View style={styles.container}>
       {/* Background Image */}
@@ -30,12 +54,12 @@ export default function Index() {
 
         {/* Start Button at the Bottom */}
         <TouchableOpacity style={styles.startButton}
-          onPress={() => router.push('/auth/signin')}
+          onPress={() => { setFirstTimeVisitor(); router.push('/auth/signin') }}
         >
           <Text
             style={styles.startButtonText}
-          
-            >
+
+          >
             Shop Now
           </Text>
         </TouchableOpacity>
@@ -83,6 +107,6 @@ const styles = StyleSheet.create({
     color: '#7F0045', // Button text color
     fontSize: 18,
     fontWeight: 'bold',
-    fontFamily:"ralewayBold"
+    fontFamily: "ralewayBold"
   },
 })

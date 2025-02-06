@@ -14,7 +14,7 @@ const api = axios.create({
 // Add a request interceptor for adding auth tokens
 api.interceptors.request.use(
     async (config) => {
-        const token = await AsyncStorage.getItem('authToken'); // Retrieve token from AsyncStorage
+        const token = await AsyncStorage.getItem('accessToken'); // Retrieve token from AsyncStorage
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -39,7 +39,7 @@ api.interceptors.response.use(
 
 export const fetchAuthToken = async () => {
     try {
-        const authToken = await AsyncStorage.getItem('authToken');
+        const authToken = await AsyncStorage.getItem('accessToken');
         console.log(authToken); // This will correctly log the token if it exists
         return authToken;
     } catch (error) {
@@ -84,7 +84,7 @@ export const fetchUserLogin = async (mobile: any, password: any) => {
 
         // Store the token in AsyncStorage for future requests
         if (token) {
-            await AsyncStorage.setItem('authToken', token);
+            await AsyncStorage.setItem('accessToken', token);
             await AsyncStorage.setItem('userData', userData);
         }
 
@@ -97,7 +97,7 @@ export const fetchUserLogin = async (mobile: any, password: any) => {
 // Example: User Logout
 export const fetchUserLogout = async () => {
     try {
-        await AsyncStorage.removeItem('authToken'); // Remove token from AsyncStorage
+        await AsyncStorage.removeItem('accessToken'); // Remove token from AsyncStorage
         await AsyncStorage.removeItem('userData');
         console.log('User logged out successfully.');
     } catch (error) {
@@ -165,7 +165,7 @@ export const fetchProductSearch = async (name: any) => {
 
 export const addToCart = async (productId: any, quantity: any) => {
     try {
-        const authToken = await AsyncStorage.getItem('authToken'); // Retrieve the auth token
+        const authToken = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
         if (!authToken) {
             throw new Error('Authentication token is missing.');
         }
@@ -194,7 +194,7 @@ export const addToCart = async (productId: any, quantity: any) => {
 export const fetchCart = async (id?: any) => {
     try {
         // Retrieve the auth token from AsyncStorage
-        const authToken = await AsyncStorage.getItem('authToken');
+        const authToken = await AsyncStorage.getItem('accessToken');
         if (!authToken) {
             throw new Error('Authentication token is missing.');
         }
@@ -224,7 +224,7 @@ export const fetchCart = async (id?: any) => {
 export const fetchCartItemRemove = async (productId: any) => {
     try {
         // Retrieve the auth token from AsyncStorage
-        const authToken = await AsyncStorage.getItem('authToken');
+        const authToken = await AsyncStorage.getItem('accessToken');
         if (!authToken) {
             throw new Error('Authentication token is missing.');
         }
@@ -291,7 +291,7 @@ export const fetchCartItemRemove = async (productId: any) => {
 export const fetchUpdateAddress = async (address: any) => {
     try {
         // Retrieve the auth token from AsyncStorage
-        const authToken = await AsyncStorage.getItem('authToken');
+        const authToken = await AsyncStorage.getItem('accessToken');
 
         if (!authToken) {
             throw new Error('Authentication token is missing.');
@@ -326,7 +326,7 @@ export const fetchUpdateAddress = async (address: any) => {
 export const fetchPlaceOrder = async () => {
     try {
         // Retrieve the auth token from AsyncStorage
-        const authToken = await AsyncStorage.getItem('authToken');
+        const authToken = await AsyncStorage.getItem('accessToken');
         if (!authToken) {
             throw new Error('Authentication token is missing.');
         }
