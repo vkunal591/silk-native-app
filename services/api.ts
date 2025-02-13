@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = 'http://server.silkindia.co.in'; // Replace with your actual API base URL
+export const API_BASE_URL = 'https://server.silkindia.co.in'; // Replace with your actual API base URL
 
 const api = axios.create({
     baseURL: API_BASE_URL,

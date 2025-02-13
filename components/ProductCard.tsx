@@ -149,19 +149,20 @@ const styles = StyleSheet.create({
     cardContainer: {
         backgroundColor: 'transparent',
         borderRadius: 10,
-        margin: 10,
-        padding: 10,
+        margin: 7,
+        padding: 0,
         elevation: 0,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.3,
         shadowRadius: 4,
         alignItems: 'center',
-        width: 155,
+        width: 170,
+
     },
     image: {
         width: '100%',
-        height: 150,
+        height: 180,
         borderRadius: 10,
         borderWidth: 5,
         borderColor: '#FFF',
@@ -200,4 +201,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default ProductCard;
+export default memo(ProductCard);

@@ -450,6 +450,14 @@ const Cart = () => {
             const response = await fetchCart();
             const data = response.data;
             setCartItems(data?.items || []);
+            if (data.items.length !== 0) {
+                ToastAndroid.show('cart items', 2000);
+
+            }
+            else {
+                ToastAndroid.show('No item in cart', 2000);
+
+            }
         } catch (error) {
             console.error('Error fetching cart details:', error);
         }
@@ -482,7 +490,7 @@ const Cart = () => {
     const onRefresh = async () => {
         setRefreshing(true);
         await fetchCartDetails();
-        calculateTotalPrice();
+        await calculateTotalPrice();
         setRefreshing(false);
     };
 
@@ -572,8 +580,8 @@ const Cart = () => {
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalHeader}>Update Address</Text>
-                        {['streetAddress', "landMark", 'city', 'state', 'country', 'pincode'].map((field) => (
-                            <TextInput key={field} placeholder={`Please enter your ${field}`} value={address[field]} onChangeText={(value) => handleAddressChange(field, value)} style={styles.input} />
+                        {['streetAddress', "landMark", 'city', 'state', 'country', 'pincode'].map((field, index) => (
+                            <TextInput key={index} placeholder={`Please enter your ${field}`} value={address[field]} onChangeText={(value) => handleAddressChange(field, value)} style={styles.input} />
                         ))}
                         <View style={styles.modalActions}>
                             <TouchableOpacity onPress={handleSubmitAddress} style={styles.submitButton}>
@@ -626,11 +634,11 @@ const styles = StyleSheet.create({
     quantityButton: { padding: 8 },
     quantity: { fontSize: 16, marginHorizontal: 8 },
     deleteButton: { padding: 8 },
-    footer: {flexDirection:"row",justifyContent:"space-between",alignContent:"center", margin: 16, alignItems: 'flex-end' },
+    footer: { flexDirection: "row", justifyContent: "space-between", alignContent: "center", margin: 16, alignItems: 'flex-end' },
     totalPrice: { fontSize: 18, fontWeight: 'bold' },
     checkoutButton: {
         backgroundColor: '#fff',
-        color:Colors.PRIMARY,
+        color: Colors.PRIMARY,
         paddingVertical: 5,
         paddingHorizontal: 32,
         borderRadius: 8,

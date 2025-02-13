@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 20,
   },
-  section: { marginTop: 20, marginLeft: 10 },
+  section: { marginTop: 20, marginLeft: 0 },
   sectionTitleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
