@@ -120,7 +120,7 @@ const AccountScreen = () => {
       <View style={styles.ordersContainer}>
         <Text style={styles.sectionTitle}>My Orders</Text>
         <View style={styles.tabs}>
-          {['To Pay', 'To Receive', 'History'].map((tab) => (
+          {['View Profile'].map((tab) => (
             <TouchableOpacity
               key={tab}
               style={[styles.tab, activeTab === tab && styles.activeTab]}
