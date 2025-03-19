@@ -299,7 +299,7 @@ export const fetchUpdateAddress = async (address: any) => {
 
         console.log('Auth Token:', authToken);
         const data = JSON.stringify({ 'address': address });
-
+        console.log(data)
         // Make the PUT request
         const response = await api.put(
             'https://server.silkindia.co.in/api/auth/update-profile',
@@ -312,8 +312,6 @@ export const fetchUpdateAddress = async (address: any) => {
                 },
             }
         );
-
-        console.log('Address Update Successfully:', response.data);
         return response.data; // Return the response data
 
     } catch (error: any) {
@@ -359,6 +357,18 @@ export const fetchPlaceOrder = async () => {
 export const fetchUserProfile = async () => {
     try {
         const response = await api.get('/user/profile');
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        throw error;
+    }
+};
+
+
+// Example: Fetch User Profile
+export const fetchCurrentUser = async () => {
+    try {
+        const response = await api.get('https://server.silkindia.co.in/api/auth/current-user');
         return response.data;
     } catch (error) {
         console.error('Error fetching user profile:', error);

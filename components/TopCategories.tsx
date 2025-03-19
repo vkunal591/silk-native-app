@@ -84,7 +84,7 @@ const TopCategories: React.FC<TopCategoriesProps> = ({ category }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Top Products</Text>
+      <Text style={styles.title}>Main Articles</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {category &&
           category.map((item, index) => (
