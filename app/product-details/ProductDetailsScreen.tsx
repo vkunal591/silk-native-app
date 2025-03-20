@@ -35,9 +35,9 @@ const ProductDetailsScreen = () => {
     const fetchProductList = async () => {
         setIsLoading(true);
         try {
-            const res = await fetchProductSearch('Silk');
+            const res = await fetchProductSearch("");
             console.log("Datas", res);
-            setProductList(res?.products || []);
+            setProductList(res || []);
         } catch (error) {
             console.error('Error fetching product list:', error);
         } finally {
