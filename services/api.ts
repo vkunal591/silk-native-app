@@ -1,10 +1,10 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = 'https://server.silkindia.co.in'; // Replace with your actual API base URL
+export const API_BASE_URL = "http://192.168.119.199:5000" // 'https://server.silkindia.co.in'; // Replace with your actual API base URL
 
 const api = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: 'http://192.168.119.199:5000',
     headers: {
         'Content-Type': 'application/json',
     },
@@ -48,14 +48,20 @@ export const fetchAuthToken = async () => {
 };
 
 // Example: User Registration
-export const fetchUserRegister = async (name: any, mobile: any, password: any, email: any, gst: any) => {
+export const fetchUserRegister = async (name: any, mobileNo: any, password: any, email: any, gst: any) => {
+    console.log({
+        name,
+        mobileNo,
+        password,
+        email,
+        gst,
+    })
     try {
-        console.log(name, email, password);
         const response = await api.post(
-            'https://server.silkindia.co.in/api/auth/register',
+            `/api/auth/register`,
             {
                 name,
-                mobile,
+                mobileNo,
                 password,
                 email,
                 gst,
@@ -68,18 +74,18 @@ export const fetchUserRegister = async (name: any, mobile: any, password: any, e
 };
 
 // Example: User Login
-export const fetchUserLogin = async (mobile: any, password: any) => {
+export const fetchUserLogin = async (mobileNo: any, password: any) => {
     try {
-        console.log(mobile);
+
         const response = await api.post(
-            'https://server.silkindia.co.in/api/auth/login',
+            '/api/auth/admin/login',
             {
-                mobile,
+                mobileNo,
                 password,
             }
         );
-        console.log(response);
-        const { token, user } = response.data;
+        console.log(response.data.data);
+        const { token, user } = response.data.data;
         let userData = JSON.stringify(user);
 
         // Store the token in AsyncStorage for future requests
@@ -109,7 +115,7 @@ export const fetchUserLogout = async () => {
 // Example: Fetch Catyegory
 export const fetchCategory = async () => {
     try {
-        const response = await api.get(`/api/categories`);
+        const response = await api.get(`/api/category`);
         return response.data;
     } catch (error) {
         console.error('Error fetching user category:', error);
@@ -131,7 +137,7 @@ export const fetchSubCategory = async () => {
 // Example: Fetch Catyegory
 export const fetchProducts = async () => {
     try {
-        const response = await api.get(`/api/products`);
+        const response = await api.get(`/api/product`);
         return response.data;
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -140,9 +146,20 @@ export const fetchProducts = async () => {
 };
 
 // Example: Fetch Catyegory
+export const fetchBanners = async () => {
+    try {
+        const response = await api.get(`/api/banner`);
+        console.log(response.data, "dskf")
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+    }
+};
+// Example: Fetch Catyegory
 export const fetchProductById = async (id: any) => {
     try {
-        const response = await api.get(`/api/products/searchById/${id}`);
+        const response = await api.get(`/api/product/${id}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -153,8 +170,8 @@ export const fetchProductById = async (id: any) => {
 // Example: Fetch Catyegory
 export const fetchProductSearch = async (name: any) => {
     try {
-        const res = await api.get(`/api/products/search/?name=${name}`)
-        if (res.status) {
+        const res: any = await api.get(`/api/product`)
+        if (res.data.success) {
             return res?.data;
         }
     } catch (error) {
@@ -171,7 +188,7 @@ export const addToCart = async (productId: any, quantity: any) => {
         }
 
         const response = await api.post(
-            'https://server.silkindia.co.in/api/cart/add',
+            '/api/cart',
             {
                 productId,
                 quantity,
@@ -203,7 +220,7 @@ export const fetchCart = async (id?: any) => {
 
         // Make the GET request
         const response = await api.get(
-            'https://server.silkindia.co.in/api/cart', // API endpoint
+            '/api/cart', // API endpoint
             {
                 headers: {
                     Authorization: `Bearer ${authToken}`, // Include the token in the headers
@@ -233,7 +250,7 @@ export const fetchCartItemRemove = async (productId: any) => {
 
         // Make the DELETE request
         const response = await api.delete(
-            'https://server.silkindia.co.in/api/cart/remove',
+            '/api/cart/remove',
             {
                 headers: { Authorization: `Bearer ${authToken}` },
                 data: { productId },
@@ -302,7 +319,7 @@ export const fetchUpdateAddress = async (address: any) => {
         console.log(data)
         // Make the PUT request
         const response = await api.put(
-            'https://server.silkindia.co.in/api/auth/update-profile',
+            '/api/auth/update-profile',
             // The data you want to update, make sure it's structured correctly
             data,
             {
@@ -333,7 +350,7 @@ export const fetchPlaceOrder = async () => {
 
         // Make the GET request
         const response = await api.post(
-            'https://server.silkindia.co.in/api/orders/place', // API endpoint
+            '/api/order', // API endpoint
             {
                 headers: {
                     Authorization: `Bearer ${authToken}`, // Include the token in the headers
@@ -368,7 +385,7 @@ export const fetchUserProfile = async () => {
 // Example: Fetch User Profile
 export const fetchCurrentUser = async () => {
     try {
-        const response = await api.get('https://server.silkindia.co.in/api/auth/current-user');
+        const response = await api.get('/api/auth/current-user');
         return response.data;
     } catch (error) {
         console.error('Error fetching user profile:', error);
@@ -379,7 +396,7 @@ export const fetchCurrentUser = async () => {
 // Example: Fetch Orders
 export const fetchOrders = async (status: any) => {
     try {
-        const response = await api.get(`/orders?status=${status}`);
+        const response = await api.get(`/api/orders?status=${status}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching orders:', error);

@@ -76,7 +76,7 @@ export default function Explore() {
                 onPress={() => handleExpand(item._id)}  // Make sure '_id' or 'id' is correct in your API
             >
                 <View style={styles.categoryHeader}>
-                    <Image source={{ uri: `${API_BASE_URL}/${item.image}` }} style={styles.categoryImage} />
+                    <Image source={{ uri: `${API_BASE_URL}${item.image.replace(/\\/g, "/")}` }} style={styles.categoryImage} />
                     <Text style={styles.categoryName}>{item.name}</Text>
                 </View>
                 <Ionicons

@@ -6,11 +6,12 @@ import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import ProductGrid from '@/components/ProductGrid';
 import TopCategories from '@/components/TopCategories';
-import { addToCart, fetchCategory, fetchProducts } from '@/services/api';
+import { addToCart, fetchBanners, fetchCategory, fetchProducts } from '@/services/api';
 
 const Shop = () => {
     const [products, setProducts] = useState([]);
     const [category, setCategory] = useState([]);
+    const [banners, setBanners] = useState([]);
     const [refreshing, setRefreshing] = useState(false);
     const [searchInput, setSearchInput] = useState("");
     const [isLoading, setIsLoading] = useState(true);
@@ -22,7 +23,7 @@ const Shop = () => {
         setError(null);
         try {
             const response = await fetchProducts();
-            setProducts(response.products);
+            setProducts(response.data.result);
         } catch (error) {
             console.error('Error loading products:', error);
             setError('Failed to load products. Please try again later.');
@@ -31,12 +32,27 @@ const Shop = () => {
         }
     }, []);
 
+    const getBanners = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const response = await fetchBanners();
+            setBanners(response.data.result);
+        } catch (error) {
+            console.error('Error loading banenrs:', error);
+            setError('Failed to load banenrs. Please try again later.');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+
     const getCategory = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
             const response = await fetchCategory();
-            setCategory(response.category);
+            setCategory(response.data.result);
         } catch (error) {
             console.error('Error loading categories:', error);
             setError('Failed to load categories. Please try again later.');
@@ -49,12 +65,14 @@ const Shop = () => {
         setRefreshing(true);
         await getProducts();
         await getCategory();
+        await getBanners();
         setRefreshing(false);
     };
 
     useEffect(() => {
         getProducts();
         getCategory();
+        getBanners();
     }, [getProducts, getCategory]);
 
     const handleViewDetails = useCallback((product: any) => {
@@ -94,12 +112,12 @@ const Shop = () => {
                 keyExtractor={(item: any) => item._id.toString()}
                 numColumns={2}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-                windowSize={10}  
-                initialNumToRender={8}  
-                maxToRenderPerBatch={10}  
-                removeClippedSubviews={true}  
+                windowSize={10}
+                initialNumToRender={8}
+                maxToRenderPerBatch={10}
+                removeClippedSubviews={true}
                 getItemLayout={(data, index) => ({
-                    length: 150, 
+                    length: 150,
                     offset: 150 * index,
                     index
                 })}
@@ -111,7 +129,7 @@ const Shop = () => {
                             setSearchInput={setSearchInput}
                             onSearchClick={() => router.push({ pathname: '/Shop/ShopScreen', params: { search: searchInput } })}
                         />
-                        <BannerSlider />
+                        <BannerSlider data={banners} />
                         {category.length > 0 && <TopCategories category={category} />}
                         <Text style={styles.sectionTitle}>New Items</Text>
                         {isLoading && <ActivityIndicator size="large" color="#0000ff" />}

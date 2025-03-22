@@ -187,18 +187,18 @@ import { Colors } from '@/contants/Colors';
 import { router } from 'expo-router';
 
 const ProductGrid = memo(({ title, itemData, onAddToCart, onViewDetails }: any) => {
-
+console.log(itemData,"dfnkjsd")
   // Error handling for image load failure
   const handleImageError = () => {
     console.error('Image failed to load');
   };
 
-  const renderItem = ({ item }: { item: { _id: string; images: string[]; name: string; price: number; rating?: number } }) => (
+  const renderItem = ({ item }: { item: { _id: string; images: string; name: string; price: number; rating?: number } }) => (
     <Pressable onPress={() => onViewDetails(item)}>
       <View style={styles.cardContainer}>
         {/* Product Image with Error Handling */}
         <Image 
-          source={{ uri: `${API_BASE_URL}/${item.images[0]}` }} 
+          source={{ uri: `${API_BASE_URL}${item.images?.replace(/\\/g, "/")}` }} 
           style={styles.image}
           onError={handleImageError} // Fallback in case of error
         />
@@ -206,7 +206,7 @@ const ProductGrid = memo(({ title, itemData, onAddToCart, onViewDetails }: any) 
         {/* Product Info */}
         <View style={styles.infoContainer}>
           <Text style={styles.title} numberOfLines={1}>
-            {item.name || 'Product name not available'}
+            {item.name  || 'Product name not available'}
           </Text>
 
           <View style={styles.subInfoContainer}>

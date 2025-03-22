@@ -36,8 +36,8 @@ const ProductDetailsScreen = () => {
         setIsLoading(true);
         try {
             const res = await fetchProductSearch("");
-            console.log("Datas", res);
-            setProductList(res || []);
+            console.log("Datas", res.data.result);
+            setProductList(res.data.result || []);
         } catch (error) {
             console.error('Error fetching product list:', error);
         } finally {
@@ -71,14 +71,15 @@ const ProductDetailsScreen = () => {
             <ScrollView style={styles.container}>
                 {/* Product Image */}
                 <Image
-                    source={productData?.images ? { uri: `${API_BASE_URL}/${productData?.images}` } : imgPlaceholder}
+                    source={productData?.images ? { uri: `${API_BASE_URL}${productData?.images.replace(/\\/g, "/")
+                    }` } : imgPlaceholder}
                     style={styles.productImage}
                 />
 
                 {/* Product Details */}
                 <View style={styles.productDetails}>
                     <Text style={styles.nameText}>{productData?.name || 'Trendy Product'}</Text>
-                    <Text style={styles.priceText}>{productData?.price ? `₹ ${productData.price}` : '₹ 00.0'}</Text>
+                    <Text style={styles.priceText}>{productData?.price ? `₹ ${productData.price }` : '₹ 00.0'}</Text>
                 </View>
 
                 {/* Variations */}
@@ -129,7 +130,7 @@ const ProductDetailsScreen = () => {
                                 })}
                             >
                                 <View style={styles.cardContainer}>
-                                    <Image source={{ uri: `${API_BASE_URL}/${item.images[0]}` }} style={styles.image} />
+                                    <Image source={{ uri: `${API_BASE_URL}${item?.images.replace(/\\/g, "/")}` }} style={styles.image} />
                                     <View style={styles.infoContainer}>
                                         <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
                                         <View style={styles.subInfoContainer}>
