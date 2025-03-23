@@ -22,10 +22,10 @@ const TopCategories: React.FC<TopCategoriesProps> = ({ category }) => {
       <Text style={styles.title}>Main Articles</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {category &&
-          category.map((item, index) => (
+          category.map((item: any, index: any) => (
             <TouchableOpacity
               key={index}
-              onPress={() => router.push('/(tabs)/explore')}
+              onPress={() => router.push({ pathname: '/Shop/ShopScreen', params: { search: item?._id } })}
               accessibilityLabel={`Go to ${item.name}`}
             >
               <View style={styles.item}>
@@ -40,7 +40,7 @@ const TopCategories: React.FC<TopCategoriesProps> = ({ category }) => {
             </TouchableOpacity>
           ))}
         {/* View All Button */}
-        <TouchableOpacity onPress={() => router.push('/(tabs)/explore')}>
+        <TouchableOpacity onPress={() => { router.push('/(tabs)/explore') }}>
           <View style={styles.item}>
             <Image
               source={require('../assets/images/adaptive-icon.png')}

@@ -1,10 +1,10 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = "http://192.168.119.199:5000" // 'https://server.silkindia.co.in'; // Replace with your actual API base URL
+export const API_BASE_URL = "http://192.168.119.199:5000"// 'https://server.silkindia.co.in'; // Replace with your actual API base URL
 
 const api = axios.create({
-    baseURL: 'http://192.168.119.199:5000',
+    baseURL: API_BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -84,7 +84,6 @@ export const fetchUserLogin = async (mobileNo: any, password: any) => {
                 password,
             }
         );
-        console.log(response.data.data);
         const { token, user } = response.data.data;
         let userData = JSON.stringify(user);
 
@@ -135,9 +134,10 @@ export const fetchSubCategory = async () => {
 };
 
 // Example: Fetch Catyegory
-export const fetchProducts = async () => {
+export const fetchProducts = async (filter?: any) => {
     try {
-        const response = await api.get(`/api/product`);
+        console.log(filter)
+        const response = await api.get(`/api/product${filter ? "?" + filter : ""}`);
         return response.data;
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -149,7 +149,6 @@ export const fetchProducts = async () => {
 export const fetchBanners = async () => {
     try {
         const response = await api.get(`/api/banner`);
-        console.log(response.data, "dskf")
         return response.data;
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -180,28 +179,35 @@ export const fetchProductSearch = async (name: any) => {
     }
 };
 
-export const addToCart = async (productId: any, quantity: any) => {
+export const addToCart = async (product: any, quantity: any, name: string, price: string) => {
     try {
-        const authToken = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
+        const authToken: any = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
+        const cachedProfile: any = await AsyncStorage.getItem('userData');
         if (!authToken) {
             throw new Error('Authentication token is missing.');
         }
+        if (cachedProfile) {
+            const userData = JSON.parse(cachedProfile);
 
-        const response = await api.post(
-            '/api/cart',
-            {
-                productId,
-                quantity,
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${authToken}`, // Add the token to the headers
+            const response = await api.post(
+                '/api/cart',
+                {
+                    user: userData.id,
+                    items: {
+                        name,
+                        product,
+                        quantity,
+                        price
+                    }
                 },
-            }
-        );
-
-        console.log(response);
-        return response;
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`, // Add the token to the headers
+                    },
+                }
+            );
+            return response;
+        }
     } catch (error: any) {
         console.error('Error adding to cart:', error.message);
         throw error;
@@ -216,8 +222,6 @@ export const fetchCart = async (id?: any) => {
             throw new Error('Authentication token is missing.');
         }
 
-        console.log('Auth Token:', authToken);
-
         // Make the GET request
         const response = await api.get(
             '/api/cart', // API endpoint
@@ -229,16 +233,14 @@ export const fetchCart = async (id?: any) => {
                 data: { productId: id },
             }
         );
-
-        console.log('Cart Details:', response.data);
-        return response; // Return the cart details
+        return response.data; // Return the cart details
     } catch (error: any) {
         console.error('Error fetching cart details:', error.message);
         throw error; // Rethrow the error for caller handling
     }
 };
 
-export const fetchCartItemRemove = async (productId: any) => {
+export const fetchCartItemRemove = async (id: any) => {
     try {
         // Retrieve the auth token from AsyncStorage
         const authToken = await AsyncStorage.getItem('accessToken');
@@ -246,91 +248,81 @@ export const fetchCartItemRemove = async (productId: any) => {
             throw new Error('Authentication token is missing.');
         }
 
-        console.log('Auth Token:', authToken);
-
         // Make the DELETE request
         const response = await api.delete(
-            '/api/cart/remove',
+            `/api/cart/${id}`,
             {
                 headers: { Authorization: `Bearer ${authToken}` },
-                data: { productId },
             }
         );
 
         console.log('Item Deleted Successfully:', response.data);
-        return response; // Return the response data
+        return response.data; // Return the response data
     } catch (error: any) {
         console.error('Error deleting cart item:', error.message);
         throw error; // Rethrow the error for caller handling
     }
 };
 
-
-
-
-
-
-
-
-
-
-
-// export const fetchUpdateAddress = async (address: any) => {
-//     try {
-//         // Retrieve the auth token from AsyncStorage
-//         const authToken = await AsyncStorage.getItem('authToken');
-//         if (!authToken) {
-//             throw new Error('Authentication token is missing.');
-//         }
-
-//         console.log('Auth Token:', authToken);
-//         console.log(address)
-//         // Make the DELETE request
-//         const response = await api.put(
-//             'https://server.silkindia.co.in/api/auth/update-profile',
-//             {
-//                 headers: {
-//                     Authorization: `Bearer ${authToken}`, // Include the token in the headers
-//                     'Content-Type': 'application/json', // Optional: Specify JSON payload
-//                 },
-//                 data: { address },
-//             }
-//         );
-
-//         console.log('Address Update Successfully:', response.data);
-//         return response.data; // Return the response data
-//     } catch (error: any) {
-//         console.error('Error address faield update:', error.message);
-//         throw error; // Rethrow the error for caller handling
-//     }
-// };
-
-export const fetchUpdateAddress = async (address: any) => {
+export const fetchClearCartItem = async () => {
     try {
-        // Retrieve the auth token from AsyncStorage
-        const authToken = await AsyncStorage.getItem('accessToken');
-
+        const authToken: any = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
+        const cachedProfile: any = await AsyncStorage.getItem('userData');
         if (!authToken) {
             throw new Error('Authentication token is missing.');
         }
+        if (cachedProfile) {
+            const userData = JSON.parse(cachedProfile);
 
-        console.log('Auth Token:', authToken);
-        const data = JSON.stringify({ 'address': address });
-        console.log(data)
-        // Make the PUT request
-        const response = await api.put(
-            '/api/auth/update-profile',
-            // The data you want to update, make sure it's structured correctly
-            data,
-            {
-                headers: {
-                    Authorization: `Bearer ${authToken}`, // Include the token in the headers
-                    'Content-Type': 'application/json', // Specify JSON payload
-                },
-            }
-        );
-        return response.data; // Return the response data
+            // Make the DELETE request
+            const response = await api.delete(
+                `/api/cart/clear/${userData?.id}`,
+                {
+                    headers: { Authorization: `Bearer ${authToken}` },
+                }
+            );
 
+            console.log('Items Removed Successfully:', response.data);
+            return response.data; // Return the response data
+        }
+    } catch (error: any) {
+        console.error('Error deleting cart items:', error.message);
+        throw error; // Rethrow the error for caller handling
+    }
+};
+
+
+
+export const fetchUpdateAddress = async (address: any) => {
+    try {
+        const authToken: any = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
+        const cachedProfile: any = await AsyncStorage.getItem('userData');
+        if (!authToken) {
+            throw new Error('Authentication token is missing.');
+        }
+        if (cachedProfile) {
+            const userData = JSON.parse(cachedProfile);
+            const data = {
+                streetAddress: address?.streetAddress ?? "",
+                city: address?.city ?? "",
+                state: address?.state ?? "",
+                country: address?.country ?? "",
+                pincode: address?.pincode ?? "",
+            };
+            // Make the PUT request
+            const response = await api.put(
+                `/api/auth/user/${userData?.id}`,
+                // The data you want to update, make sure it's structured correctly
+                data,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`, // Include the token in the headers
+                        'Content-Type': 'application/json', // Specify JSON payload
+                    },
+                }
+            );
+            return response.data; // Return the response data
+        }
     } catch (error: any) {
         console.error('Error address update failed:', error.message);
         throw error; // Rethrow the error for caller handling
@@ -338,30 +330,31 @@ export const fetchUpdateAddress = async (address: any) => {
 };
 
 
-export const fetchPlaceOrder = async () => {
+export const fetchPlaceOrder = async (items: any, totalAmount: string) => {
     try {
-        // Retrieve the auth token from AsyncStorage
-        const authToken = await AsyncStorage.getItem('accessToken');
+        const authToken: any = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
+        const cachedProfile: any = await AsyncStorage.getItem('userData');
         if (!authToken) {
             throw new Error('Authentication token is missing.');
         }
+        if (cachedProfile) {
+            const userData = JSON.parse(cachedProfile);
+            const data = { user: userData?.id, items, totalAmount }
+            // Make the GET request
+            const response = await api.post(
+                '/api/order', // API endpoint
+                data,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`, // Include the token in the headers
+                        'Content-Type': 'application/json', // Optional: Specify JSON payload
+                    },
+                }
+            );
 
-        console.log('Auth Token:', authToken);
-
-        // Make the GET request
-        const response = await api.post(
-            '/api/order', // API endpoint
-            {
-                headers: {
-                    Authorization: `Bearer ${authToken}`, // Include the token in the headers
-                    'Content-Type': 'application/json', // Optional: Specify JSON payload
-                },
-                // data: { productId: id },
-            }
-        );
-
-        console.log('Order Placed:', response.data);
-        return response; // Return the cart details
+            console.log('Order Placed:', response.data);
+            return response?.data; // Return the cart details
+        }
     } catch (error: any) {
         console.error('Error placing order order:', error.message);
         throw error; // Rethrow the error for caller handling

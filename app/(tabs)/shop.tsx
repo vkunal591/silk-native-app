@@ -83,9 +83,9 @@ const Shop = () => {
         ToastAndroid.show(`View Product ${product?.name}`, 2000);
     }, [router]);
 
-    const handleAddToCart = useCallback(async (id: string) => {
+    const handleAddToCart = useCallback(async (id: string,name:string,price:string) => {
         try {
-            await addToCart(id, 1);
+            await addToCart(id, 1,name,price);
             ToastAndroid.show('Product added to cart', 2000);
             router.push('/(tabs)/cart');
         } catch (error) {

@@ -32,7 +32,6 @@ export default function SigninScreen() {
   useEffect(() => {
     const checkLoginStatus = async () => {
       const token = await AsyncStorage.getItem('accessToken');
-      console.log(token)
       if (token) {
         router.replace('/(tabs)/shop');  // Redirect to the shop if already logged in
       }
@@ -56,7 +55,6 @@ export default function SigninScreen() {
       setIsLoading(true); // Start loading
       try {
         const res = await fetchUserRegister(name, mobileNo, password, '', gst);
-        console.log(res)
         if (res?.success) {
           ToastAndroid.show('You have successfully signed up!', 2000);
           const token = res.data.token;

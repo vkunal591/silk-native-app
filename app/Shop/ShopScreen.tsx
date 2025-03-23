@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, memo } from 'react';
 import { View, StyleSheet, Text, FlatList, Image, Pressable, TextInput, Button, RefreshControl, ToastAndroid, TouchableOpacity, Animated } from 'react-native';
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { fetchProducts, fetchCategory, fetchProductSearch, addToCart, API_BASE_URL } from '@/services/api';
 import { Colors } from '@/contants/Colors';
 import Slider from '@react-native-community/slider';
@@ -30,10 +30,13 @@ const ShopScreen = () => {
   const [slideAnim] = useState(new Animated.Value(-450)); // To control sliding animation
   const [refreshing, setRefreshing] = useState(false);
   const [searchInput, setSearchInput] = useState('');
+  const { search }: any = useLocalSearchParams();
+
 
   const getProducts = async () => {
     try {
-      const res = await fetchProducts();
+      const query = `category=${search}`
+      const res = await fetchProducts(query);
       setProducts(res.data.result);
       setFilteredData(res.data.result);
     } catch (error) {
@@ -92,9 +95,9 @@ const ShopScreen = () => {
     ToastAndroid.show(`View Product ${product?.name}`, ToastAndroid.SHORT);
   };
 
-  const handleAddToCart = async (id: any) => {
+  const handleAddToCart = async (id: any, name: string, price: string) => {
     try {
-      await addToCart(id, 1);
+      await addToCart(id, 1, name, price);
       ToastAndroid.show('Product added to cart', ToastAndroid.SHORT);
       router.push('/(tabs)/cart');
     } catch (error) {
@@ -111,7 +114,7 @@ const ShopScreen = () => {
           <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
           <View style={styles.subInfoContainer}>
             <Text style={styles.price}>₹{item.price}</Text>
-            <Pressable onPress={() => handleAddToCart(item._id)}>
+            <Pressable onPress={() => handleAddToCart(item._id, item.name, item.price)}>
               <MaterialCommunityIcons name="cart-plus" size={30} color={Colors?.PRIMARY} />
             </Pressable>
           </View>
@@ -140,12 +143,12 @@ const ShopScreen = () => {
     <View style={styles.container}>
       <Header Title="shop" searchInput={searchInput} setSearchInput={setSearchInput} onSearchClick={fetchProductList} />
 
-      <MaterialCommunityIcons style={{ alignSelf: 'flex-end', marginRight: 20 }} size={28} color={Colors.PRIMARY} name='filter-variant-plus' onPress={toggleFilterPanel} />
+      {/* <MaterialCommunityIcons style={{ alignSelf: 'flex-end', marginRight: 20 }} size={28} color={Colors.PRIMARY} name='filter-variant-plus' onPress={toggleFilterPanel} /> */}
 
       <FlatList
         data={filteredData}
         renderItem={renderItem}
-        keyExtractor={(item:any) => item?._id}
+        keyExtractor={(item: any) => item?._id}
         numColumns={2}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         initialNumToRender={10}
@@ -179,74 +182,74 @@ const ShopScreen = () => {
 
 const styles = StyleSheet.create({
   container: {
-       flex: 1,
-       padding: 0,
-     },
-     cardContainer: {
-       backgroundColor: 'transparent',
-       borderRadius: 10,
-       margin: 10,
-       padding: 0,
-       elevation: 0,
-       shadowColor: '#000',
-       shadowOffset: { width: 0, height: 2 },
-       shadowOpacity: 0.3,
-       shadowRadius: 4,
-       alignItems: 'center',
-       width: 175,
-     },
-     image: {
-       width: '100%',
-       height: 190,
-       borderRadius: 10,
-       borderWidth: 4,
-       elevation: 2,
-       shadowColor: '#000',
-       shadowOffset: { width: 0, height: 2 },
-       shadowOpacity: 0.3,
-       shadowRadius: 4,
-       borderColor: '#FFF',
-     },
-     infoContainer: {
-       marginTop: 10,
-       width: "100%",
-       alignItems: 'flex-start',
-     },
-     title: {
-       fontSize: 14,
-       fontWeight: '600',
-       color: '#333',
-     },
-     subInfoContainer: {
-       width: "100%",
-       flexDirection: 'row',
-       justifyContent: "space-between",
-       paddingHorizontal: 10
-     },
-     price: {
-       fontSize: 16,
-       fontWeight: '700',
-       color: '#FF6F61',
-       marginTop: 5,
-     },
-     filterPanel: {
-       position: 'absolute',
-       top: 0,
-       left: 0,
-       bottom: 0,
-       right: 0,
-       backgroundColor: 'white',
-       padding: 20,
-       width: "80%",
-       zIndex: 100,
-     },
-     filterClose: { flexDirection: "row", justifyContent: "space-evenly", paddingRight: 30 },
-     filterTitle: {
-       fontSize: 18,
-       fontWeight: 'bold',
-       marginBottom: 20,
-       width: "100%",
-     },
+    flex: 1,
+    padding: 0,
+  },
+  cardContainer: {
+    backgroundColor: 'transparent',
+    borderRadius: 10,
+    margin: 10,
+    padding: 0,
+    elevation: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    alignItems: 'center',
+    width: 175,
+  },
+  image: {
+    width: '100%',
+    height: 190,
+    borderRadius: 10,
+    borderWidth: 4,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    borderColor: '#FFF',
+  },
+  infoContainer: {
+    marginTop: 10,
+    width: "100%",
+    alignItems: 'flex-start',
+  },
+  title: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  subInfoContainer: {
+    width: "100%",
+    flexDirection: 'row',
+    justifyContent: "space-between",
+    paddingHorizontal: 10
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FF6F61',
+    marginTop: 5,
+  },
+  filterPanel: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
+    backgroundColor: 'white',
+    padding: 20,
+    width: "80%",
+    zIndex: 100,
+  },
+  filterClose: { flexDirection: "row", justifyContent: "space-evenly", paddingRight: 30 },
+  filterTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    width: "100%",
+  },
 });
 
 export default ShopScreen;

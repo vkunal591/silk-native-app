@@ -187,7 +187,6 @@ import { Colors } from '@/contants/Colors';
 import { router } from 'expo-router';
 
 const ProductGrid = memo(({ title, itemData, onAddToCart, onViewDetails }: any) => {
-console.log(itemData,"dfnkjsd")
   // Error handling for image load failure
   const handleImageError = () => {
     console.error('Image failed to load');
@@ -215,7 +214,7 @@ console.log(itemData,"dfnkjsd")
             {/* Add to Cart Button */}
             <TouchableOpacity
               style={styles.rating}
-              onPress={() => onAddToCart(item._id)} // Stable function reference
+              onPress={() => onAddToCart(item._id,item?.name,item?.price)} // Stable function reference
               accessible
               accessibilityLabel="Add to cart"
             >

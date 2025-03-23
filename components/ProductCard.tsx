@@ -31,7 +31,7 @@ const ProductCard = memo(({ product, onViewDetails, onAddToCart }: any) => {
                         <View style={styles.ratingContainer}>
                             <Pressable 
                                 style={styles.rating} 
-                                onPress={() => onAddToCart(product?._id)}
+                                onPress={() => onAddToCart(product?._id,product?.name,product?.price)}
                             >
                                 <MaterialCommunityIcons 
                                     name="cart-plus" 

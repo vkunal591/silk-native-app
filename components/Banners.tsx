@@ -183,7 +183,7 @@ const slides = [
     id: '1',
     title: 'Big Sale',
     desc: 'Up to 50%',
-    image: bannerImage, 
+    image: bannerImage,
   },
   {
     id: '2',
@@ -215,18 +215,18 @@ const BannerSlider = ({ data = slides }) => {
     }, [currentIndex, data.length])
   );
 
-  const onScroll = (event:any) => {
+  const onScroll = (event: any) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / width);
     setCurrentIndex(index);
   };
 
-  const goToSlide = (index:any) => {
+  const goToSlide = (index: any) => {
     flatListRef.current?.scrollToIndex({ index, animated: true });
     setCurrentIndex(index);
   };
 
-  const renderItem = ({ item }:any) => {
+  const renderItem = ({ item }: any) => {
     const imageSource =
       typeof item.image === 'string'
         ? { uri: `${API_BASE_URL}${item?.image.replace(/\\/g, "/")}` }
@@ -234,16 +234,16 @@ const BannerSlider = ({ data = slides }) => {
 
     return (
       <View style={styles.slide}>
-      <ImageBackground source={imageSource} style={styles.banner} resizeMode="cover">
-        {/* Black overlay for better text readability */}
-        <View style={styles.overlay} />
+        <ImageBackground source={imageSource} style={styles.banner} resizeMode="cover">
+          {/* Black overlay for better text readability */}
+          <View style={styles.overlay} />
 
-        <View style={styles.textContainer}>
-          <Text style={styles.bigSaleText}>{item?.title}</Text>
-          <Text style={styles.subtitle}>{item?.description}</Text>
-        </View>
-      </ImageBackground>
-    </View>
+          <View style={styles.textContainer}>
+            <Text style={styles.bigSaleText}>{item?.title}</Text>
+            <Text style={styles.subtitle}>{item?.description}</Text>
+          </View>
+        </ImageBackground>
+      </View>
     );
   };
 
@@ -277,28 +277,29 @@ const BannerSlider = ({ data = slides }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: width-20,  
+    width: width - 25,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
-    overflow:"hidden"
+    overflow: "hidden",
+    marginHorizontal: "auto"
   },
   slide: {
-    width: width,  
+    width: width - 25,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
-    overflow:"hidden"
-
+    overflow: "hidden",
   },
   banner: {
-    width: width-5,  
-    height: height * 0.25,  
+    width: width - 25,
+    height: height * 0.25,
     justifyContent: 'flex-start',
     alignItems: 'center',
     overflow: 'hidden',
-    backdropFilter:"blur"
-  }, overlay: {
+    backdropFilter: "blur",
+  },
+  overlay: {
     ...StyleSheet.absoluteFillObject, // Covers the entire ImageBackground
     backgroundColor: 'rgba(0, 0, 0, 0.1)', // Semi-transparent black
   },

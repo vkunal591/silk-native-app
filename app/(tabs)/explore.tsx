@@ -7,7 +7,7 @@
 
 import { fetchCategory, fetchSubCategory, API_BASE_URL } from '@/services/api';  // Make sure the import path is correct
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import {
     View,
@@ -28,27 +28,29 @@ export default function Explore() {
     const getCategory = async () => {
         try {
             const response = await fetchCategory();
-            setCategory(response.category);  // Ensure response structure is correct
+            // console.log(response.data.result)
+            setCategory(response.data.result);  // Ensure response structure is correct
         } catch (error) {
             console.error('Error loading categories:', error);
         }
     };
 
     // Function to fetch subcategories
-    const getSubCategory = async () => {
-        try {
-            const response = await fetchSubCategory();
-            setSubCategory(response.subCategories);  // Ensure response structure is correct
-        } catch (error) {
-            console.error('Error loading subcategories:', error);
-        }
-    };
+    // const getSubCategory = async () => {
+    //     try {
+    //         const response = await fetchSubCategory();
+    //         setSubCategory(response.subCategories);  // Ensure response structure is correct
+    //     } catch (error) {
+    //         console.error('Error loading subcategories:', error);
+    //     }
+    // };
 
     // Use useFocusEffect to fetch data when screen is focused
     useFocusEffect(
         React.useCallback(() => {
             getCategory();
-            getSubCategory();
+            // getSubCategory();
+            console.log(category)
         }, [])
     );
 
@@ -57,6 +59,9 @@ export default function Explore() {
         setExpandedCategory(categoryId === expandedCategory ? null : categoryId);
     };
 
+    const handleSearchByCategory = (categoryId: any) => {
+        router.push({ pathname: '/Shop/ShopScreen', params: { search: categoryId } })
+    };
     // Render subcategories for each category
     const renderSubcategories = (subcategories: any[]) => (
         <View style={styles.subcategoryContainer}>
@@ -73,19 +78,19 @@ export default function Explore() {
         <View style={styles.categoryContainer}>
             <TouchableOpacity
                 style={styles.categoryButton}
-                onPress={() => handleExpand(item._id)}  // Make sure '_id' or 'id' is correct in your API
+                onPress={() => handleSearchByCategory(item._id)}  // Make sure '_id' or 'id' is correct in your API
             >
                 <View style={styles.categoryHeader}>
                     <Image source={{ uri: `${API_BASE_URL}${item.image.replace(/\\/g, "/")}` }} style={styles.categoryImage} />
                     <Text style={styles.categoryName}>{item.name}</Text>
                 </View>
-                <Ionicons
+                {/* <Ionicons
                     name={expandedCategory === item._id ? 'chevron-up' : 'chevron-down'}
                     size={24}
                     color="#555"
-                />
+                /> */}
             </TouchableOpacity>
-            {expandedCategory === item._id && item.subcategories?.length > 0 && renderSubcategories(item.subcategories)}
+            {/* {expandedCategory === item._id && item.subcategories?.length > 0 && renderSubcategories(item.subcategories)} */}
         </View>
     );
 
@@ -113,12 +118,12 @@ export default function Explore() {
                     </TouchableOpacity>
                 ))}
             </View>
-            <FlatList
+            {category && <FlatList
                 data={category}
                 keyExtractor={(item: any) => String(item?._id)}  // Ensure correct key extractor
                 renderItem={renderCategory}
                 contentContainerStyle={styles.listContainer}
-            />
+            />}
         </View>
     );
 }

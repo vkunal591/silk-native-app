@@ -52,7 +52,6 @@ const Account = () => {
       console.error('Error loading user profile:', error);
     } finally {
       setIsLoading(false); // Set loading to false after fetching
-      console.log(userProfile)
     }
   };
 
@@ -126,7 +125,7 @@ const Account = () => {
               ))}
             </View>
             {error ? (
-              <Text style={styles.errorText}>{"No Data"}</Text> // Show error if it occurs
+              <Text style={styles.errorText}>{""}</Text> // Show error if it occurs
             ) : (
               <View style={styles.orderList}>
                 {orders.length > 0 ? (

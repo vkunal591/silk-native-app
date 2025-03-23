@@ -19,6 +19,7 @@ import {
 import {
     fetchCart,
     fetchCartItemRemove,
+    fetchClearCartItem,
     fetchCurrentUser,
     fetchPlaceOrder,
     fetchUpdateAddress,
@@ -32,11 +33,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const img = require('../../assets/images/silk.png');
 
 const Cart = () => {
-    const [cartItems, setCartItems] = useState([]);
+    const [cartItems, setCartItems] = useState<any>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [totalPrice, setTotalPrice] = useState(0);
-    const [address, setAddress] = useState({
+    const [address, setAddress] = useState<any>({
         streetAddress: "",
+        city: "",
         state: "",
         country: "",
         pincode: ""
@@ -46,20 +48,18 @@ const Cart = () => {
     const router = useRouter();
     const getUserData = async () => {
         const cachedProfile: any = await fetchCurrentUser()
-        console.log("dsfsdf",cachedProfile?.details?.user?.address?.country)
         if (cachedProfile?.status) {
             setAddress(cachedProfile?.details?.user?.address);
         }
     }
 
     const handleAddressChange = (field: string, value: string) => {
-        setAddress((prevAddress) => ({ ...prevAddress, [field]: value }));
+        setAddress((prevAddress: any) => ({ ...prevAddress, [field]: value }));
     };
 
     const handleSubmitAddress = async () => {
-        console.log('Submitting address:', address);
 
-        if (!address.streetAddress || !address.landMark || !address.country || !address.city || !address.state || !address.pincode) {
+        if (!address.streetAddress || !address.country || !address.city || !address.state || !address.pincode) {
             Alert.alert('Error', 'Please fill in all address fields.');
             return;
         }
@@ -77,16 +77,19 @@ const Cart = () => {
     };
 
     const calculateTotalPrice = () => {
-        const total = cartItems.reduce((sum: any, item: any) => sum + item?.product?.price * item.quantity, 0);
+        const items = extractItemsArray(cartItems);
+
+        const total = items.reduce((sum: any, item: any) => sum + item?.product?.price * item?.quantity, 0);
+        console.log(total)
         setTotalPrice(total);
     };
 
     const fetchCartDetails = async () => {
         try {
             const response = await fetchCart();
-            const data = response.data;
-            setCartItems(data?.items || []);
-            if (data.items.length !== 0) {
+            const data = response.data.result;
+            setCartItems(data || []);
+            if (data.length !== 0) {
                 ToastAndroid.show('cart items', 2000);
 
             }
@@ -101,9 +104,10 @@ const Cart = () => {
 
     const handleRemoveItem = async (id: any) => {
         try {
-            const response = await fetchCartItemRemove(id);
-            if (response.status === 200) {
-                setCartItems((prevItems) => prevItems.filter((item: any) => item?.product?._id !== id));
+            const response: any = await fetchCartItemRemove(id);
+            if (response.success) {
+                ToastAndroid.show("Item removed successfully", 1000);
+                setCartItems((prevItems: any) => prevItems.filter((item: any) => item?._id !== id));
             }
         } catch (error) {
             console.error('Error removing cart item:', error);
@@ -113,10 +117,10 @@ const Cart = () => {
     const handleQuantityChange = (id: any, type: string) => {
         setCartItems((prevItems: any) =>
             prevItems.map((item: any) =>
-                item?.product?._id === id
+                item?.product === id
                     ? {
                         ...item,
-                        quantity: type === 'increment' ? item.quantity + 1 : Math.max(item.quantity - 1, 1),
+                        quantity: type === 'increment' ? item.quantity + 1 : Math.max(item?.quantity - 1, 1),
                     }
                     : item
             )
@@ -143,12 +147,26 @@ const Cart = () => {
         }, [cartItems])
     );
 
+    const extractItemsArray = (carts: any) => {
+        return carts.map((cart: any) => cart.items[0]);
+    }
+
+    const totalAmountCalcutalte = (cart: any) => {
+        console.log(cart)
+        return cart?.reduce((sum: any, item: any) => sum + (item.price * item?.quantity), 0);
+    }
+
     const handlePlaceOrder = async () => {
+        const cart = extractItemsArray(cartItems);
+        const items = extractItemsArray(cartItems);
+        const totalAmount = totalAmountCalcutalte(cart);
         try {
-            const res: any = await fetchPlaceOrder();
-            if (res.status) {
+            const res: any = await fetchPlaceOrder(items,totalAmount);
+            if (res.success) {
+                const res:any= await fetchClearCartItem()
+                console.log(res.data,"dfjksfkjdsk")
                 ToastAndroid.show('Your order has been placed successfully!', 2000);
-                router.push('/(tabs)/account');
+                router.push('/(tabs)/shop');
             } else {
                 ToastAndroid.show('Add to cart, Plz try again!', 2000);
             }
@@ -175,20 +193,22 @@ const Cart = () => {
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.shippingAddress}>
-                        {address ? `${address.streetAddress}, ${address.state}, ${address?.country} - ${address.pincode}` : 'No address added. Please add an address.'}
+                        {address?.pincode ? `${address.streetAddress}, ${address.state}, ${address?.country} - ${address.pincode}` : 'No address added. Please add an address.'}
                     </Text>
                 </View>
 
                 <FlatList
                     data={cartItems}
-                    keyExtractor={(item: any) => item?.product?._id}
+                    keyExtractor={(item: any) => item?._id}
                     renderItem={({ item }) => (
                         <View style={styles.cartItem}>
                             <View style={styles.cartDetails}>
-                                <Text style={styles.itemTitle}>{item?.product?.name}</Text>
+                                <Text style={styles.itemTitle}>{item?.items[0]?.name}</Text>
                             </View>
-
-                            <TouchableOpacity onPress={() => handleRemoveItem(item?.product?._id)} style={styles.deleteButton}>
+                            <View style={{ marginRight: 20 }} >
+                                <Text style={styles.itemTitle}>{item?.items[0]?.quantity}</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => handleRemoveItem(item?._id)} style={styles.deleteButton}>
                                 <Octicons name="trash" size={20} color="#FF0000" />
                             </TouchableOpacity>
                         </View>
@@ -206,7 +226,7 @@ const Cart = () => {
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalHeader}>Update Address</Text>
-                        {['streetAddress', "landMark", 'city', 'state', 'country', 'pincode'].map((field, index) => (
+                        {['streetAddress', 'city', 'state', 'country', 'pincode'].map((field: any, index: any) => (
                             <TextInput key={index} placeholder={`Please enter your ${field}`} value={address[field]} onChangeText={(value) => handleAddressChange(field, value)} style={styles.input} />
                         ))}
                         <View style={styles.modalActions}>
@@ -226,21 +246,13 @@ const Cart = () => {
 
 export default Cart;
 
-const styles = StyleSheet.create({
+const styles: any = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FFF' },
     header: { fontSize: 24, fontWeight: 'bold', margin: 16 },
     cartCount: { fontSize: 18, color: '#800020' },
-    shippingContainer: {
-        backgroundColor: '#F5F5F5',
-        padding: 16,
-        marginHorizontal: 16,
-        borderRadius: 8,
-        alignItems: 'left',
-        justifyContent: 'space-between',
-    },
-    shippingSubContainer: { flexDirection: "row" },
+    shippingSubContainer: { flexDirection: "row", width:"95%", marginHorizontal:"auto" },
     shippingTitle: { fontWeight: 'bold', fontSize: 16 },
-    shippingAddress: { fontSize: 14, color: '#555', marginTop: 4 },
+    shippingAddress: { fontSize: 14, color: '#555', marginTop: 0, width:"95%", marginHorizontal:"auto" },
     editButton: { padding: 8 },
     cartItem: {
         flexDirection: 'row',
@@ -271,11 +283,11 @@ const styles = StyleSheet.create({
         marginTop: 8,
         borderWidth: 1,
         borderColor: Colors.PRIMARY,
-        textAlign:"center",
-        width:"98%"
+        textAlign: "center",
+        width: "98%"
 
     },
-    checkoutText: { color: Colors.PRIMARY, fontWeight: 'bold',textAlign:"center", fontSize: 16 },
+    checkoutText: { color: Colors.PRIMARY, fontWeight: 'bold', textAlign: "center", fontSize: 16 },
     modalContainer: {
         flex: 1,
         justifyContent: 'center',

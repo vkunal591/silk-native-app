@@ -36,7 +36,6 @@ const ProductDetailsScreen = () => {
         setIsLoading(true);
         try {
             const res = await fetchProductSearch("");
-            console.log("Datas", res.data.result);
             setProductList(res.data.result || []);
         } catch (error) {
             console.error('Error fetching product list:', error);
@@ -54,9 +53,9 @@ const ProductDetailsScreen = () => {
     const handleQuantityIncrease = () => setQuantity(quantity + 1);
     const handleQuantityDecrease = () => setQuantity(Math.max(1, quantity - 1));
 
-    const handleAddToCart = async (_id: any) => {
+    const handleAddToCart = async (_id: any,name:string,price:string) => {
         try {
-            await addToCart(_id, quantity).then(() => {
+            await addToCart(_id, quantity,name,price).then(() => {
                 ToastAndroid.show('Product added to cart.', 2000);
                 router.push('/(tabs)/cart');
             });
@@ -135,7 +134,7 @@ const ProductDetailsScreen = () => {
                                         <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
                                         <View style={styles.subInfoContainer}>
                                             <Text style={styles.price}>₹{item.price}</Text>
-                                            <TouchableOpacity style={styles.rating} onPress={() => handleAddToCart(item?._id)}>
+                                            <TouchableOpacity style={styles.rating} onPress={() => handleAddToCart(item?._id,item?.name,item?.price)}>
                                                 <MaterialCommunityIcons name="cart-plus" size={30} color={Colors.PRIMARY} />
                                             </TouchableOpacity>
                                         </View>
@@ -159,7 +158,7 @@ const ProductDetailsScreen = () => {
                         <Text style={styles.addButton}><Entypo name='plus' size={22} /></Text>
                     </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.cartButton} onPress={() => handleAddToCart(productData?._id)}>
+                <TouchableOpacity style={styles.cartButton} onPress={() => handleAddToCart(productData?._id,productData?.name,productData?.price)}>
                     <Text style={styles.cartText}>Add to</Text>
                     <MaterialCommunityIcons name="cart-plus" size={35} color={Colors.PRIMARY} style={styles.cart} />
                 </TouchableOpacity>
