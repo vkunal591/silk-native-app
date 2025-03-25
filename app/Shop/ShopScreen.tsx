@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, memo } from 'react';
 import { View, StyleSheet, Text, FlatList, Image, Pressable, TextInput, Button, RefreshControl, ToastAndroid, TouchableOpacity, Animated } from 'react-native';
 import { AntDesign, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { fetchProducts, fetchCategory, fetchProductSearch, addToCart, API_BASE_URL } from '@/services/api';
+import { fetchProducts, fetchCategory, addToCart, API_BASE_URL } from '@/services/api';
 import { Colors } from '@/contants/Colors';
 import Slider from '@react-native-community/slider';
 import RNPickerSelect from 'react-native-picker-select';
@@ -36,7 +36,7 @@ const ShopScreen = () => {
   const getProducts = async () => {
     try {
       const query = `category=${search}`
-      const res = await fetchProducts(query);
+      const res = await fetchProducts(search && query);
       setProducts(res.data.result);
       setFilteredData(res.data.result);
     } catch (error) {
@@ -82,7 +82,7 @@ const ShopScreen = () => {
 
   const fetchProductList = async () => {
     try {
-      const res = await fetchProductSearch("");
+      const res = await fetchProducts("");
       setProducts(res.data.result);
       setFilteredData(res.data.result);
     } catch (error) {

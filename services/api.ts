@@ -1,408 +1,282 @@
+
+
+
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL = "http://192.168.119.199:5000"// 'https://server.silkindia.co.in'; // Replace with your actual API base URL
+export const API_BASE_URL ='https://server.silkindia.co.in'// "http://192.168.54.199:5000"; // Replace with your actual API base URL
 
 const api = axios.create({
-    baseURL: API_BASE_URL,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    timeout: 5000,
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 5000, // Set timeout to 5 seconds
 });
 
-// Add a request interceptor for adding auth tokens
+// Request Interceptor for Authorization Token
 api.interceptors.request.use(
-    async (config) => {
-        const token = await AsyncStorage.getItem('accessToken'); // Retrieve token from AsyncStorage
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
+  async (config) => {
+    const token = await AsyncStorage.getItem('accessToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    return config;
+  },
+  (error:any) => Promise.reject(error)
 );
 
-// Add a response interceptor to handle errors globally
+// Response Interceptor for Error Handling
 api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            console.error('Unauthorized: Please log in again.');
-            // Optional: Handle token refresh or logout
-        }
-        return Promise.reject(error);
+  (response) => response,
+  (error:any) => {
+    if (!error.response) {
+      // Network error or timeout
+      console.error('Network Error: Please check your connection or try again later.');
+    } else if (error.response.status === 401) {
+      console.error('Unauthorized: Please log in again.');
+    } else {
+      console.error('Error:', error.response?.data?.message || error.message);
     }
+    return Promise.reject(error);
+  }
 );
 
+// Helper function to fetch auth token
 export const fetchAuthToken = async () => {
-    try {
-        const authToken = await AsyncStorage.getItem('accessToken');
-        console.log(authToken); // This will correctly log the token if it exists
-        return authToken;
-    } catch (error) {
-        console.error('Error fetching auth token:', error);
-    }
+  try {
+    return await AsyncStorage.getItem('accessToken');
+  } catch (error:any) {
+    console.error('Error fetching auth token:', error);
+  }
 };
 
-// Example: User Registration
-export const fetchUserRegister = async (name: any, mobileNo: any, password: any, email: any, gst: any) => {
-    console.log({
-        name,
-        mobileNo,
-        password,
-        email,
-        gst,
-    })
-    try {
-        const response = await api.post(
-            `/api/auth/register`,
-            {
-                name,
-                mobileNo,
-                password,
-                email,
-                gst,
-            }
-        );
-        return response.data;
-    } catch (error) {
-        throw error;
-    }
+// Register User
+export const fetchUserRegister = async (name: string, mobileNo: string, password: string, email: string, gst: string) => {
+  try {
+    const response = await api.post('/api/auth/register', { name, mobileNo, password, email, gst });
+    return response.data;
+  } catch (error:any) {
+    console.error('Error registering user:', error);
+    throw error;
+  }
 };
 
-// Example: User Login
-export const fetchUserLogin = async (mobileNo: any, password: any) => {
-    try {
-
-        const response = await api.post(
-            '/api/auth/admin/login',
-            {
-                mobileNo,
-                password,
-            }
-        );
-        const { token, user } = response.data.data;
-        let userData = JSON.stringify(user);
-
-        // Store the token in AsyncStorage for future requests
-        if (token) {
-            await AsyncStorage.setItem('accessToken', token);
-            await AsyncStorage.setItem('userData', userData);
-        }
-
-        return { token, user };
-    } catch (error) {
-        throw error;
+// User Login
+export const fetchUserLogin = async (mobileNo: string, password: string) => {
+  try {
+    const response = await api.post('/api/auth/admin/login', { mobileNo, password });
+    const { token, user } = response.data.data;
+    if (token) {
+      await AsyncStorage.setItem('accessToken', token);
+      await AsyncStorage.setItem('userData', JSON.stringify(user));
     }
+    return { token, user };
+  } catch (error:any) {
+    console.error('Error logging in:', error);
+    throw error;
+  }
 };
 
-// Example: User Logout
+// User Logout
 export const fetchUserLogout = async () => {
-    try {
-        await AsyncStorage.removeItem('accessToken'); // Remove token from AsyncStorage
-        await AsyncStorage.removeItem('userData');
-        console.log('User logged out successfully.');
-    } catch (error) {
-        console.error('Error during logout:', error);
-        throw error;
-    }
+  try {
+    await AsyncStorage.removeItem('accessToken');
+    await AsyncStorage.removeItem('userData');
+    console.log('User logged out successfully.');
+  } catch (error:any) {
+    console.error('Error during logout:', error);
+    throw error;
+  }
 };
 
-// Example: Fetch Catyegory
+// Fetch Categories
 export const fetchCategory = async () => {
-    try {
-        const response = await api.get(`/api/category`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching user category:', error);
-        throw error;
-    }
+  try {
+    const response = await api.get('/api/category');
+    return response.data;
+  } catch (error:any) {
+    console.error('Error fetching categories:', error);
+    throw error;
+  }
 };
 
-// Example: Fetch Catyegory
+// Fetch Subcategories
 export const fetchSubCategory = async () => {
-    try {
-        const response = await api.get(`/api/subcategories`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching user subcategory:', error);
-        throw error;
-    }
+  try {
+    const response = await api.get('/api/subcategories');
+    return response.data;
+  } catch (error:any) {
+    console.error('Error fetching subcategories:', error);
+    throw error;
+  }
 };
 
-// Example: Fetch Catyegory
-export const fetchProducts = async (filter?: any) => {
-    try {
-        console.log(filter)
-        const response = await api.get(`/api/product${filter ? "?" + filter : ""}`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching products:', error);
-        throw error;
-    }
+// Fetch Products with Filter
+export const fetchProducts = async (filter?: string | undefined) => {
+  try {
+    const response = await api.get(`/api/product${filter ? `?${filter}` : ''}`);
+    return response.data;
+  } catch (error:any) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
 };
 
-// Example: Fetch Catyegory
+// Fetch Banners
 export const fetchBanners = async () => {
-    try {
-        const response = await api.get(`/api/banner`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching products:', error);
-        throw error;
-    }
+  try {
+    const response = await api.get('/api/banner');
+    return response.data;
+  } catch (error:any) {
+    console.error('Error fetching banners:', error);
+    throw error;
+  }
 };
-// Example: Fetch Catyegory
+
+// Fetch Product By ID
 export const fetchProductById = async (id: any) => {
-    try {
-        const response = await api.get(`/api/product/${id}`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching products:', error);
-        throw error;
-    }
+  try {
+    const response = await api.get(`/api/product/${id}`);
+    return response.data;
+  } catch (error:any) {
+    console.error('Error fetching product by ID:', error);
+    throw error;
+  }
 };
 
-// Example: Fetch Catyegory
-export const fetchProductSearch = async (name: any) => {
-    try {
-        const res: any = await api.get(`/api/product`)
-        if (res.data.success) {
-            return res?.data;
-        }
-    } catch (error) {
-        console.error('Error fetching products:', error);
-        throw error;
+// Add Item to Cart
+export const addToCart = async (product: string, quantity: number, name: string, price: string) => {
+  try {
+    const authToken = await AsyncStorage.getItem('accessToken');
+    const cachedProfile = await AsyncStorage.getItem('userData');
+    if (!authToken || !cachedProfile) {
+      throw new Error('Authentication token or user data missing.');
     }
+    const userData = JSON.parse(cachedProfile);
+    const response = await api.post('/api/cart', {
+      user: userData.id,
+      items: { name, product, quantity, price },
+    }, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response;
+  } catch (error:any) {
+    console.error('Error adding to cart:', error.message);
+    throw error;
+  }
 };
 
-export const addToCart = async (product: any, quantity: any, name: string, price: string) => {
-    try {
-        const authToken: any = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
-        const cachedProfile: any = await AsyncStorage.getItem('userData');
-        if (!authToken) {
-            throw new Error('Authentication token is missing.');
-        }
-        if (cachedProfile) {
-            const userData = JSON.parse(cachedProfile);
-
-            const response = await api.post(
-                '/api/cart',
-                {
-                    user: userData.id,
-                    items: {
-                        name,
-                        product,
-                        quantity,
-                        price
-                    }
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`, // Add the token to the headers
-                    },
-                }
-            );
-            return response;
-        }
-    } catch (error: any) {
-        console.error('Error adding to cart:', error.message);
-        throw error;
+// Fetch Cart
+export const fetchCart = async () => {
+  try {
+    const authToken = await AsyncStorage.getItem('accessToken');
+    if (!authToken) {
+      throw new Error('Authentication token is missing.');
     }
+    const response = await api.get('/api/cart', {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  } catch (error:any) {
+    console.error('Error fetching cart:', error.message);
+    throw error;
+  }
 };
 
-export const fetchCart = async (id?: any) => {
-    try {
-        // Retrieve the auth token from AsyncStorage
-        const authToken = await AsyncStorage.getItem('accessToken');
-        if (!authToken) {
-            throw new Error('Authentication token is missing.');
-        }
-
-        // Make the GET request
-        const response = await api.get(
-            '/api/cart', // API endpoint
-            {
-                headers: {
-                    Authorization: `Bearer ${authToken}`, // Include the token in the headers
-                    'Content-Type': 'application/json', // Optional: Specify JSON payload
-                },
-                data: { productId: id },
-            }
-        );
-        return response.data; // Return the cart details
-    } catch (error: any) {
-        console.error('Error fetching cart details:', error.message);
-        throw error; // Rethrow the error for caller handling
-    }
-};
-
+// Remove Item from Cart
 export const fetchCartItemRemove = async (id: any) => {
-    try {
-        // Retrieve the auth token from AsyncStorage
-        const authToken = await AsyncStorage.getItem('accessToken');
-        if (!authToken) {
-            throw new Error('Authentication token is missing.');
-        }
-
-        // Make the DELETE request
-        const response = await api.delete(
-            `/api/cart/${id}`,
-            {
-                headers: { Authorization: `Bearer ${authToken}` },
-            }
-        );
-
-        console.log('Item Deleted Successfully:', response.data);
-        return response.data; // Return the response data
-    } catch (error: any) {
-        console.error('Error deleting cart item:', error.message);
-        throw error; // Rethrow the error for caller handling
+  try {
+    const authToken = await AsyncStorage.getItem('accessToken');
+    if (!authToken) {
+      throw new Error('Authentication token is missing.');
     }
+    const response = await api.delete(`/api/cart/${id}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    console.log('Item Deleted Successfully:', response.data);
+    return response.data;
+  } catch (error:any) {
+    console.error('Error deleting cart item:', error.message);
+    throw error;
+  }
 };
 
+// Clear Cart
 export const fetchClearCartItem = async () => {
-    try {
-        const authToken: any = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
-        const cachedProfile: any = await AsyncStorage.getItem('userData');
-        if (!authToken) {
-            throw new Error('Authentication token is missing.');
-        }
-        if (cachedProfile) {
-            const userData = JSON.parse(cachedProfile);
-
-            // Make the DELETE request
-            const response = await api.delete(
-                `/api/cart/clear/${userData?.id}`,
-                {
-                    headers: { Authorization: `Bearer ${authToken}` },
-                }
-            );
-
-            console.log('Items Removed Successfully:', response.data);
-            return response.data; // Return the response data
-        }
-    } catch (error: any) {
-        console.error('Error deleting cart items:', error.message);
-        throw error; // Rethrow the error for caller handling
+  try {
+    const authToken = await AsyncStorage.getItem('accessToken');
+    const cachedProfile = await AsyncStorage.getItem('userData');
+    if (!authToken || !cachedProfile) {
+      throw new Error('Authentication token or user data missing.');
     }
+    const userData = JSON.parse(cachedProfile);
+    const response = await api.delete(`/api/cart/clear/${userData.id}`, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    console.log('Items Removed Successfully:', response.data);
+    return response.data;
+  } catch (error:any) {
+    console.error('Error deleting cart items:', error.message);
+    throw error;
+  }
 };
 
-
-
-export const fetchUpdateAddress = async (address: any) => {
-    try {
-        const authToken: any = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
-        const cachedProfile: any = await AsyncStorage.getItem('userData');
-        if (!authToken) {
-            throw new Error('Authentication token is missing.');
-        }
-        if (cachedProfile) {
-            const userData = JSON.parse(cachedProfile);
-            const data = {
-                streetAddress: address?.streetAddress ?? "",
-                city: address?.city ?? "",
-                state: address?.state ?? "",
-                country: address?.country ?? "",
-                pincode: address?.pincode ?? "",
-            };
-            // Make the PUT request
-            const response = await api.put(
-                `/api/auth/user/${userData?.id}`,
-                // The data you want to update, make sure it's structured correctly
-                data,
-                {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`, // Include the token in the headers
-                        'Content-Type': 'application/json', // Specify JSON payload
-                    },
-                }
-            );
-            return response.data; // Return the response data
-        }
-    } catch (error: any) {
-        console.error('Error address update failed:', error.message);
-        throw error; // Rethrow the error for caller handling
+// Update User Address
+export const fetchUpdateAddress = async (address: { street: string; city: string; state: string; zipCode: string; }) => {
+  try {
+    const authToken = await AsyncStorage.getItem('accessToken');
+    const cachedProfile = await AsyncStorage.getItem('userData');
+    if (!authToken || !cachedProfile) {
+      throw new Error('Authentication token or user data missing.');
     }
+    const userData = JSON.parse(cachedProfile);
+    const response = await api.put(`/api/auth/user/${userData.id}`, address, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    return response.data;
+  } catch (error:any) {
+    console.error('Error updating address:', error.message);
+    throw error;
+  }
 };
 
-
-export const fetchPlaceOrder = async (items: any, totalAmount: string) => {
-    try {
-        const authToken: any = await AsyncStorage.getItem('accessToken'); // Retrieve the auth token
-        const cachedProfile: any = await AsyncStorage.getItem('userData');
-        if (!authToken) {
-            throw new Error('Authentication token is missing.');
-        }
-        if (cachedProfile) {
-            const userData = JSON.parse(cachedProfile);
-            const data = { user: userData?.id, items, totalAmount }
-            // Make the GET request
-            const response = await api.post(
-                '/api/order', // API endpoint
-                data,
-                {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`, // Include the token in the headers
-                        'Content-Type': 'application/json', // Optional: Specify JSON payload
-                    },
-                }
-            );
-
-            console.log('Order Placed:', response.data);
-            return response?.data; // Return the cart details
-        }
-    } catch (error: any) {
-        console.error('Error placing order order:', error.message);
-        throw error; // Rethrow the error for caller handling
+// Place Order
+export const fetchPlaceOrder = async (items: any, totalAmount: any) => {
+  try {
+    const authToken = await AsyncStorage.getItem('accessToken');
+    const cachedProfile = await AsyncStorage.getItem('userData');
+    if (!authToken || !cachedProfile) {
+      throw new Error('Authentication token or user data missing.');
     }
+    const userData = JSON.parse(cachedProfile);
+    const response = await api.post('/api/order', { user: userData.id, items, totalAmount }, {
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    console.log('Order Placed:', response.data);
+    return response.data;
+  } catch (error:any) {
+    console.error('Error placing order:', error.message);
+    throw error;
+  }
 };
 
+// Fetch Orders
+export const fetchOrders = async (status:any) => {
+  try {
+    const response = await api.get(`/api/orders?status=${status}`);
+    return response.data;
+  } catch (error:any) {
+    console.error('Error fetching orders:', error);
+    throw error;
+  }
+};
 
-
-// Example: Fetch User Profile
+// Fetch User Profile
 export const fetchUserProfile = async () => {
-    try {
-        const response = await api.get('/user/profile');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching user profile:', error);
-        throw error;
-    }
-};
-
-
-// Example: Fetch User Profile
-export const fetchCurrentUser = async () => {
-    try {
-        const response = await api.get('/api/auth/current-user');
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching user profile:', error);
-        throw error;
-    }
-};
-
-// Example: Fetch Orders
-export const fetchOrders = async (status: any) => {
-    try {
-        const response = await api.get(`/api/orders?status=${status}`);
-        return response.data;
-    } catch (error) {
-        console.error('Error fetching orders:', error);
-        throw error;
-    }
-};
-
-// Example: Post Order History
-export const fetchOrderHistory = async () => {
-    try {
-        const response = await api.get(`/order-history`);
-        return response.data;
-    } catch (error) {
-        console.error('Error order-history:', error);
-    }
+  try {
+    const response = await api.get('/user/profile');
+    return response.data;
+  } catch (error:any) {
+    console.error('Error fetching user profile:', error);
+    throw error;
+  }
 };

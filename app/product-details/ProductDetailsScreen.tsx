@@ -14,7 +14,7 @@ import {
     Pressable,
     ToastAndroid,
 } from 'react-native';
-import { addToCart, API_BASE_URL, fetchProductSearch } from '@/services/api';
+import { addToCart, API_BASE_URL, fetchProducts } from '@/services/api';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Entypo, Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/contants/Colors';
@@ -35,7 +35,7 @@ const ProductDetailsScreen = () => {
     const fetchProductList = async () => {
         setIsLoading(true);
         try {
-            const res = await fetchProductSearch("");
+            const res = await fetchProducts("");
             setProductList(res.data.result || []);
         } catch (error) {
             console.error('Error fetching product list:', error);
@@ -53,9 +53,9 @@ const ProductDetailsScreen = () => {
     const handleQuantityIncrease = () => setQuantity(quantity + 1);
     const handleQuantityDecrease = () => setQuantity(Math.max(1, quantity - 1));
 
-    const handleAddToCart = async (_id: any,name:string,price:string) => {
+    const handleAddToCart = async (_id: any, name: string, price: string) => {
         try {
-            await addToCart(_id, quantity,name,price).then(() => {
+            await addToCart(_id, quantity, name, price).then(() => {
                 ToastAndroid.show('Product added to cart.', 2000);
                 router.push('/(tabs)/cart');
             });
@@ -70,15 +70,17 @@ const ProductDetailsScreen = () => {
             <ScrollView style={styles.container}>
                 {/* Product Image */}
                 <Image
-                    source={productData?.images ? { uri: `${API_BASE_URL}${productData?.images.replace(/\\/g, "/")
-                    }` } : imgPlaceholder}
+                    source={productData?.images ? {
+                        uri: `${API_BASE_URL}${productData?.images.replace(/\\/g, "/")
+                            }`
+                    } : imgPlaceholder}
                     style={styles.productImage}
                 />
 
                 {/* Product Details */}
                 <View style={styles.productDetails}>
                     <Text style={styles.nameText}>{productData?.name || 'Trendy Product'}</Text>
-                    <Text style={styles.priceText}>{productData?.price ? `₹ ${productData.price }` : '₹ 00.0'}</Text>
+                    <Text style={styles.priceText}>{productData?.price ? `₹ ${productData.price}` : '₹ 00.0'}</Text>
                 </View>
 
                 {/* Variations */}
@@ -112,7 +114,7 @@ const ProductDetailsScreen = () => {
                         <Text style={styles.sectionTitle}>Most Popular</Text>
                         <TouchableOpacity onPress={() => router.push({
                             pathname: "/Shop/ShopScreen",
-                            params: productData?.name
+                            params: { search: productData?.category }
                         })}>
                             <Text style={styles.seeAllText}>See All</Text>
                         </TouchableOpacity>
@@ -120,7 +122,7 @@ const ProductDetailsScreen = () => {
                     <FlatList
                         data={productList}
                         horizontal
-                    
+
                         renderItem={({ item }) => (
                             <Pressable
                                 onPress={() => router.push({
@@ -134,7 +136,7 @@ const ProductDetailsScreen = () => {
                                         <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
                                         <View style={styles.subInfoContainer}>
                                             <Text style={styles.price}>₹{item.price}</Text>
-                                            <TouchableOpacity style={styles.rating} onPress={() => handleAddToCart(item?._id,item?.name,item?.price)}>
+                                            <TouchableOpacity style={styles.rating} onPress={() => handleAddToCart(item?._id, item?.name, item?.price)}>
                                                 <MaterialCommunityIcons name="cart-plus" size={30} color={Colors.PRIMARY} />
                                             </TouchableOpacity>
                                         </View>
@@ -158,7 +160,7 @@ const ProductDetailsScreen = () => {
                         <Text style={styles.addButton}><Entypo name='plus' size={22} /></Text>
                     </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.cartButton} onPress={() => handleAddToCart(productData?._id,productData?.name,productData?.price)}>
+                <TouchableOpacity style={styles.cartButton} onPress={() => handleAddToCart(productData?._id, productData?.name, productData?.price)}>
                     <Text style={styles.cartText}>Add to</Text>
                     <MaterialCommunityIcons name="cart-plus" size={35} color={Colors.PRIMARY} style={styles.cart} />
                 </TouchableOpacity>
