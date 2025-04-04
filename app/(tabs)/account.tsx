@@ -103,7 +103,7 @@ const Account = () => {
               <EvilIcons name='user' size={60} style={styles.profileImage} />
               <View style={styles.profileDetails}>
                 <Text style={styles.profileName}>{userProfile?.name || 'No name available'}</Text>
-                <Text style={styles.profileEmail}>{userProfile?.mobileNo || 'No mobile available'}</Text>
+                <Text style={styles.profileEmail}>{userProfile?.mobile || 'No mobile available'}</Text>
               </View>
               <TouchableOpacity onPress={handleLogout}>
                 <MaterialIcons name="logout" size={30} color={Colors.PRIMARY} />
