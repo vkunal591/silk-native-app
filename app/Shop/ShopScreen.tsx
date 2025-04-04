@@ -1,4 +1,12 @@
-import React, { useState, useEffect, useCallback, memo } from "react";
+
+
+
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  memo
+} from "react";
 import {
   View,
   StyleSheet,
@@ -6,23 +14,28 @@ import {
   FlatList,
   Image,
   Pressable,
-  TextInput,
-  Button,
   RefreshControl,
   ToastAndroid,
-  TouchableOpacity,
   Animated,
+  ActivityIndicator,
+  Button
 } from "react-native";
-import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  AntDesign,
+  MaterialCommunityIcons
+} from "@expo/vector-icons";
+import {
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter
+} from "expo-router";
 import {
   fetchProducts,
   fetchCategory,
   addToCart,
-  API_BASE_URL,
+  API_BASE_URL
 } from "@/services/api";
 import { Colors } from "@/contants/Colors";
-import Slider from "@react-native-community/slider";
 import RNPickerSelect from "react-native-picker-select";
 import Header from "@/components/Header";
 
@@ -43,65 +56,47 @@ const ShopScreen = () => {
   });
   const [filteredData, setFilteredData] = useState([]);
   const [filterVisible, setFilterVisible] = useState(false);
-  const [slideAnim] = useState(new Animated.Value(-450)); // To control sliding animation
+  const [slideAnim] = useState(new Animated.Value(-450));
   const [refreshing, setRefreshing] = useState(false);
   const [searchInput, setSearchInput] = useState("");
+  const [loading, setLoading] = useState(true);
   const { search }: any = useLocalSearchParams();
 
   const getProducts = async () => {
     try {
       const query = `category=${search}`;
-      const res = await fetchProducts(search && query);
+      const res = await fetchProducts(search ? query : "");
+      if (!res || !res.data || !res.data.result) throw new Error("Invalid response");
       setProducts(res.data.result);
       setFilteredData(res.data.result);
     } catch (error) {
       console.error("Error loading products:", error);
+      ToastAndroid.show("Failed to load products. Please try again.", ToastAndroid.LONG);
     }
   };
 
   const getCategory = async () => {
     try {
       const res = await fetchCategory();
+      if (!res || !res.data || !res.data.result) throw new Error("Invalid response");
       setCategory(res.data.result);
     } catch (error) {
       console.error("Error loading categories:", error);
+      ToastAndroid.show("Failed to load categories. Please try again.", ToastAndroid.LONG);
     }
   };
 
   const filterData = () => {
-    const filtered = products.filter(
-      (item: any) =>
-        (filters.name
-          ? item.name.toLowerCase().includes(filters.name.toLowerCase())
-          : true) &&
-        (filters.description
-          ? item.description
-              .toLowerCase()
-              .includes(filters.description.toLowerCase())
-          : true) &&
-        (filters.price ? item.price <= filters.price : true) &&
-        (filters.stock ? item.stock >= filters.stock : true) &&
-        (filters.subCategoryName
-          ? item.subCategory.name
-              .toLowerCase()
-              .includes(filters.subCategoryName.toLowerCase())
-          : true) &&
-        (filters.subCategoryGender
-          ? item.subCategory.gender
-              .toLowerCase()
-              .includes(filters.subCategoryGender.toLowerCase())
-          : true) &&
-        (filters.colors
-          ? item.colors.some((color: string) =>
-              color.toLowerCase().includes(filters.colors.toLowerCase())
-            )
-          : true) &&
-        (filters.sizes
-          ? item.sizes.some((size: string) =>
-              size.toLowerCase().includes(filters.sizes.toLowerCase())
-            )
-          : true) &&
-        (filters.createdAt ? item.createdAt.includes(filters.createdAt) : true)
+    const filtered = products.filter((item: any) =>
+      (filters.name ? item.name.toLowerCase().includes(filters.name.toLowerCase()) : true) &&
+      (filters.description ? item.description.toLowerCase().includes(filters.description.toLowerCase()) : true) &&
+      (filters.price ? item.price <= filters.price : true) &&
+      (filters.stock ? item.stock >= filters.stock : true) &&
+      (filters.subCategoryName ? item.subCategory.name.toLowerCase().includes(filters.subCategoryName.toLowerCase()) : true) &&
+      (filters.subCategoryGender ? item.subCategory.gender.toLowerCase().includes(filters.subCategoryGender.toLowerCase()) : true) &&
+      (filters.colors ? item.colors?.some((color: string) => color.toLowerCase().includes(filters.colors.toLowerCase())) : true) &&
+      (filters.sizes ? item.sizes?.some((size: string) => size.toLowerCase().includes(filters.sizes.toLowerCase())) : true) &&
+      (filters.createdAt ? item.createdAt.includes(filters.createdAt) : true)
     );
     setFilteredData(filtered);
     setFilterVisible(false);
@@ -109,13 +104,22 @@ const ShopScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      getProducts();
-      getCategory();
+      let isMounted = true;
+      const fetchData = async () => {
+        setLoading(true);
+        await getProducts();
+        await getCategory();
+        isMounted && setLoading(false);
+      };
+      fetchData();
+      return () => {
+        isMounted = false;
+      };
     }, [])
   );
 
   const handleFilterChange = (field: string, value: string | number) => {
-    setFilters((prevFilters) => ({ ...prevFilters, [field]: value }));
+    setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
   const fetchProductList = async () => {
@@ -125,6 +129,7 @@ const ShopScreen = () => {
       setFilteredData(res.data.result);
     } catch (error) {
       console.error("Error fetching product list:", error);
+      ToastAndroid.show("Error fetching products", ToastAndroid.LONG);
     }
   };
 
@@ -143,10 +148,7 @@ const ShopScreen = () => {
       router.push("/(tabs)/cart");
     } catch (error) {
       console.error("Error adding product to cart:", error);
-      ToastAndroid.show(
-        "Could not add product to cart. Login and try again.",
-        ToastAndroid.SHORT
-      );
+      ToastAndroid.show("Could not add product to cart. Login and try again.", ToastAndroid.SHORT);
     }
   };
 
@@ -158,19 +160,11 @@ const ShopScreen = () => {
           style={styles.image}
         />
         <View style={styles.infoContainer}>
-          <Text style={styles.title} numberOfLines={1}>
-            {item.name}
-          </Text>
+          <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
           <View style={styles.subInfoContainer}>
             <Text style={styles.price}>₹{item.price}</Text>
-            <Pressable
-              onPress={() => handleAddToCart(item._id, item.name, item.price)}
-            >
-              <MaterialCommunityIcons
-                name="cart-plus"
-                size={30}
-                color={Colors?.PRIMARY}
-              />
+            <Pressable onPress={() => handleAddToCart(item._id, item.name, item.price)}>
+              <MaterialCommunityIcons name="cart-plus" size={30} color={Colors?.PRIMARY} />
             </Pressable>
           </View>
         </View>
@@ -194,6 +188,15 @@ const ShopScreen = () => {
     }).start();
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <Header
@@ -203,57 +206,38 @@ const ShopScreen = () => {
         onSearchClick={fetchProductList}
       />
 
-      {/* <MaterialCommunityIcons style={{ alignSelf: 'flex-end', marginRight: 20 }} size={28} color={Colors.PRIMARY} name='filter-variant-plus' onPress={toggleFilterPanel} /> */}
-
       {filteredData?.length !== 0 && (
         <FlatList
           data={filteredData}
           renderItem={renderItem}
           keyExtractor={(item: any) => item?._id}
           numColumns={2}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={5}
+          removeClippedSubviews={true}
         />
       )}
 
-      {/* Filter Panel */}
-      <Animated.View
-        style={[styles.filterPanel, { transform: [{ translateX: slideAnim }] }]}
-      >
+      <Animated.View style={[styles.filterPanel, { transform: [{ translateX: slideAnim }] }]}>
         <View style={styles.filterClose}>
           <Text style={styles.filterTitle}>Filters</Text>
-          <Text>
-            <AntDesign
-              name="close"
-              size={25}
-              color={Colors.PRIMARY}
-              onPress={toggleFilterPanel}
-            />
-          </Text>
+          <AntDesign name="close" size={25} color={Colors.PRIMARY} onPress={toggleFilterPanel} />
         </View>
         <Text>Price: ₹{filters.price}</Text>
         <RNPickerSelect
           onValueChange={(value) => handleFilterChange("price", value)}
-          items={[300, 500, 700, 1000, 1500, 2000, 5000]?.map((c: any) => ({
+          items={[300, 500, 700, 1000, 1500, 2000, 5000].map((c) => ({
             label: `₹ ${c}`,
             value: c,
           }))}
         />
         <RNPickerSelect
-          onValueChange={(value) =>
-            handleFilterChange("subCategoryName", value)
-          }
+          onValueChange={(value) => handleFilterChange("subCategoryName", value)}
           items={category.map((c: any) => ({ label: c.name, value: c.name }))}
         />
-        <Button
-          title="Apply Filters"
-          color={Colors?.PRIMARY}
-          onPress={filterData}
-        />
+        <Button title="Apply Filters" color={Colors?.PRIMARY} onPress={filterData} />
       </Animated.View>
     </View>
   );
@@ -269,11 +253,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     margin: 10,
     padding: 0,
-    elevation: 0,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
     alignItems: "center",
     width: 175,
   },
@@ -282,11 +261,6 @@ const styles = StyleSheet.create({
     height: 190,
     borderRadius: 10,
     borderWidth: 4,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
     borderColor: "#FFF",
   },
   infoContainer: {
@@ -333,6 +307,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     width: "100%",
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
 });
 
-export default ShopScreen;
+export default memo(ShopScreen);
