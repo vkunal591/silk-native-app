@@ -118,9 +118,6 @@ const ShopScreen = () => {
     }, [])
   );
 
-  const handleFilterChange = (field: string, value: string | number) => {
-    setFilters((prev) => ({ ...prev, [field]: value }));
-  };
 
   const fetchProductList = async () => {
     try {
@@ -179,16 +176,9 @@ const ShopScreen = () => {
     setRefreshing(false);
   };
 
-  const toggleFilterPanel = () => {
-    setFilterVisible(!filterVisible);
-    Animated.timing(slideAnim, {
-      toValue: filterVisible ? -550 : 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
 
-  if (loading) {
+
+  if (loading && !search) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.PRIMARY} />
@@ -219,26 +209,6 @@ const ShopScreen = () => {
           removeClippedSubviews={true}
         />
       )}
-
-      <Animated.View style={[styles.filterPanel, { transform: [{ translateX: slideAnim }] }]}>
-        <View style={styles.filterClose}>
-          <Text style={styles.filterTitle}>Filters</Text>
-          <AntDesign name="close" size={25} color={Colors.PRIMARY} onPress={toggleFilterPanel} />
-        </View>
-        <Text>Price: ₹{filters.price}</Text>
-        <RNPickerSelect
-          onValueChange={(value) => handleFilterChange("price", value)}
-          items={[300, 500, 700, 1000, 1500, 2000, 5000].map((c) => ({
-            label: `₹ ${c}`,
-            value: c,
-          }))}
-        />
-        <RNPickerSelect
-          onValueChange={(value) => handleFilterChange("subCategoryName", value)}
-          items={category.map((c: any) => ({ label: c.name, value: c.name }))}
-        />
-        <Button title="Apply Filters" color={Colors?.PRIMARY} onPress={filterData} />
-      </Animated.View>
     </View>
   );
 };
