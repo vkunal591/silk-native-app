@@ -50,7 +50,6 @@ export default function Explore() {
         React.useCallback(() => {
             getCategory();
             // getSubCategory();
-            console.log(category)
         }, [])
     );
 

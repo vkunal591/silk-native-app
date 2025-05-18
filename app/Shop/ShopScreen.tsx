@@ -1,12 +1,4 @@
-
-
-
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  memo
-} from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import {
   View,
   StyleSheet,
@@ -18,26 +10,34 @@ import {
   ToastAndroid,
   Animated,
   ActivityIndicator,
-  Button
+  Button,
 } from "react-native";
-import {
-  AntDesign,
-  MaterialCommunityIcons
-} from "@expo/vector-icons";
-import {
-  useFocusEffect,
-  useLocalSearchParams,
-  useRouter
-} from "expo-router";
-import {
-  fetchProducts,
-  fetchCategory,
-  addToCart,
-  API_BASE_URL
-} from "@/services/api";
+import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { fetchProducts, fetchCategory, addToCart, API_BASE_URL } from "@/services/api";
 import { Colors } from "@/contants/Colors";
 import RNPickerSelect from "react-native-picker-select";
 import Header from "@/components/Header";
+
+const SkeletonLoader = () => (
+  <View style={{ flexDirection: "row", gap: 25 }}><View style={styles.skeletonContainer}>
+    {[...Array(6)].map((_, index) => (
+      <View key={index} style={styles.skeletonCard}>
+        <View style={styles.skeletonImage} />
+        <View style={styles.skeletonText} />
+        <View style={styles.skeletonPrice} />
+      </View>
+    ))}
+  </View><View style={styles.skeletonContainer}>
+      {[...Array(6)].map((_, index) => (
+        <View key={index} style={styles.skeletonCard}>
+          <View style={styles.skeletonImage} />
+          <View style={styles.skeletonText} />
+          <View style={styles.skeletonPrice} />
+        </View>
+      ))}
+    </View></View>
+);
 
 const ShopScreen = () => {
   const router = useRouter();
@@ -60,18 +60,34 @@ const ShopScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [hasMore, setHasMore] = useState(true);
   const { search }: any = useLocalSearchParams();
 
-  const getProducts = async () => {
+  const getProducts = async (pageNum = 1, pageLimit = limit, searchQuery = "") => {
     try {
-      const query = `category=${search}`;
-      const res = await fetchProducts(search ? query : "");
+      setLoading(true);
+      let query = `page=${pageNum}&limit=${pageLimit}`;
+      if (search) query += `&category=${search}`;
+      if (searchQuery) query += `&search=${encodeURIComponent(searchQuery)}&searchkey=name`;
+      const res = await fetchProducts(query);
       if (!res || !res.data || !res.data.result) throw new Error("Invalid response");
-      setProducts(res.data.result);
-      setFilteredData(res.data.result);
+
+      setHasMore(res.data.result.length === pageLimit);
+
+      if (pageNum === 1) {
+        setProducts(res.data.result);
+        setFilteredData(res.data.result);
+      } else {
+        setProducts((prev) => [...prev, ...res.data.result]);
+        setFilteredData((prev) => [...prev, ...res.data.result]);
+      }
     } catch (error) {
       console.error("Error loading products:", error);
       ToastAndroid.show("Failed to load products. Please try again.", ToastAndroid.LONG);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -107,7 +123,7 @@ const ShopScreen = () => {
       let isMounted = true;
       const fetchData = async () => {
         setLoading(true);
-        await getProducts();
+        await getProducts(1, limit, searchInput);
         await getCategory();
         isMounted && setLoading(false);
       };
@@ -115,15 +131,16 @@ const ShopScreen = () => {
       return () => {
         isMounted = false;
       };
-    }, [])
+    }, [limit, searchInput])
   );
-
 
   const fetchProductList = async () => {
     try {
-      const res = await fetchProducts("");
+      const res = await fetchProducts(`page=1&limit=${limit}${searchInput ? `&search=${encodeURIComponent(searchInput)}&searchkey=name` : ""}`);
       setProducts(res.data.result);
       setFilteredData(res.data.result);
+      setPage(1);
+      setHasMore(res.data.result.length === limit);
     } catch (error) {
       console.error("Error fetching product list:", error);
       ToastAndroid.show("Error fetching products", ToastAndroid.LONG);
@@ -142,10 +159,20 @@ const ShopScreen = () => {
     try {
       await addToCart(id, 1, name, price);
       ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
-      router.push("/(tabs)/cart");
+      // router.push("/(tabs)/cart");
     } catch (error) {
       console.error("Error adding product to cart:", error);
       ToastAndroid.show("Could not add product to cart. Login and try again.", ToastAndroid.SHORT);
+    }
+  };
+
+  const loadMoreProducts = () => {
+    if (!loading && hasMore) {
+      setPage((prev) => {
+        const nextPage = prev + 1;
+        getProducts(nextPage, limit, searchInput);
+        return nextPage;
+      });
     }
   };
 
@@ -169,20 +196,39 @@ const ShopScreen = () => {
     </Pressable>
   );
 
+  const renderFooter = () => {
+    if (!loading || page === 1) return null;
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="large" color={Colors.PRIMARY} />
+      </View>
+    );
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
-    await getProducts();
+    setPage(1);
+    await getProducts(1, limit, searchInput);
     filterData();
     setRefreshing(false);
   };
 
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+    getProducts(1, newLimit, searchInput);
+  };
 
-
-  if (loading && !search) {
+  if (loading && page === 1 && !search) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.PRIMARY} />
-        <Text>Loading...</Text>
+      <View style={styles.container}>
+        <Header
+          Title="shop"
+          searchInput={searchInput}
+          setSearchInput={setSearchInput}
+          onSearchClick={fetchProductList}
+        />
+        <SkeletonLoader />
       </View>
     );
   }
@@ -195,7 +241,19 @@ const ShopScreen = () => {
         setSearchInput={setSearchInput}
         onSearchClick={fetchProductList}
       />
-
+      {/* <View style={styles.paginationControls}>
+        <Text>Items per page: </Text>
+        <RNPickerSelect
+          onValueChange={(value) => handleLimitChange(value)}
+          items={[
+            { label: "10", value: 10 },
+            { label: "20", value: 20 },
+            { label: "50", value: 50 },
+          ]}
+          style={pickerSelectStyles}
+          value={limit}
+        />
+      </View> */}
       {filteredData?.length !== 0 && (
         <FlatList
           data={filteredData}
@@ -203,10 +261,13 @@ const ShopScreen = () => {
           keyExtractor={(item: any) => item?._id}
           numColumns={2}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          initialNumToRender={10}
-          maxToRenderPerBatch={10}
+          initialNumToRender={limit}
+          maxToRenderPerBatch={limit}
           windowSize={5}
           removeClippedSubviews={true}
+          onEndReached={loadMoreProducts}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       )}
     </View>
@@ -281,6 +342,71 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  skeletonContainer: {
+    // flex: 1,
+    width: '40%',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    padding: 10,
+  },
+  skeletonCard: {
+    width: 175,
+    margin: 10,
+    borderRadius: 10,
+  },
+  skeletonImage: {
+    width: "100%",
+    height: 190,
+    backgroundColor: "#e0e0e0",
+    borderRadius: 10,
+  },
+  skeletonText: {
+    width: "80%",
+    height: 20,
+    backgroundColor: "#e0e0e0",
+    marginTop: 10,
+    borderRadius: 4,
+  },
+  skeletonPrice: {
+    width: "40%",
+    height: 20,
+    backgroundColor: "#e0e0e0",
+    marginTop: 5,
+    borderRadius: 4,
+  },
+  footerLoader: {
+    paddingVertical: 20,
+    alignItems: "center",
+  },
+  paginationControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+  },
+});
+
+const pickerSelectStyles = StyleSheet.create({
+  inputIOS: {
+    fontSize: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "gray",
+    borderRadius: 4,
+    color: "black",
+    paddingRight: 30,
+  },
+  inputAndroid: {
+    fontSize: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 0.5,
+    borderColor: "gray",
+    borderRadius: 8,
+    color: "black",
+    paddingRight: 30,
   },
 });
 

@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
@@ -29,7 +22,7 @@ import { Colors } from '@/contants/Colors';
 
 const Account = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
-  const [orders, setOrders] = useState([]); 
+  const [orders, setOrders] = useState([]);
   const [activeTab, setActiveTab] = useState('To Pay');
   const [isLoading, setIsLoading] = useState(false); // New state for loading indicator
   const [error, setError] = useState(''); // New state for handling errors
@@ -40,6 +33,7 @@ const Account = () => {
     setError(''); // Reset error state before fetching
     try {
       const cachedProfile = await AsyncStorage.getItem('userData');
+      console.log(cachedProfile)
       if (cachedProfile) {
         setUserProfile(JSON.parse(cachedProfile));
       } else {

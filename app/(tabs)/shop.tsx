@@ -7,6 +7,7 @@ import {
   ToastAndroid,
   ActivityIndicator,
   FlatList,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
 import BannerSlider from "@/components/Banners";
@@ -40,7 +41,6 @@ const Shop = () => {
         fetchBanners(),
         fetchCategory(),
       ]);
-
       setProducts(productsData.data.result);
       setBanners(bannersData.data.result);
       setCategory(categoryData.data.result);
@@ -78,7 +78,7 @@ const Shop = () => {
       try {
         await addToCart(id, 1, name, price);
         ToastAndroid.show("Product added to cart", 2000);
-        router.push("/(tabs)/cart");
+        // router.push("/(tabs)/cart");
       } catch (error) {
         console.error("Error adding product to cart:", error);
         setError("Could not add product to cart. Please try again.");
@@ -131,9 +131,13 @@ const Shop = () => {
                 })
               }
             />
-            {banners.length > 0 && <BannerSlider data={banners} />}
+            {/* {banners.length > 0 && <BannerSlider data={banners} />} */}
             {category.length > 0 && <TopCategories category={category} />}
-            <Text style={styles.sectionTitle}>New Items</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 5 }} >
+              <Text style={styles.sectionTitle}>New Items</Text> <TouchableOpacity
+                onPress={() => router.push({ pathname: '/Shop/ShopScreen' })}
+              ><Text>See All</Text></TouchableOpacity>
+            </View>
             {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
             {error && <Text style={styles.errorText}>{error}</Text>}
 

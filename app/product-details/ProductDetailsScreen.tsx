@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   FlatList,
   Pressable,
   ToastAndroid,
+  Modal,
 } from "react-native";
 import { addToCart, API_BASE_URL, fetchProducts } from "@/services/api";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -20,6 +21,7 @@ import {
 } from "@expo/vector-icons";
 import { Colors } from "@/contants/Colors";
 import { useFocusEffect } from "expo-router";
+import ImageViewer from "react-native-image-zoom-viewer";
 
 const imgPlaceholder = require("../../assets/images/women.jpeg");
 
@@ -32,6 +34,7 @@ const ProductDetailsScreen = () => {
   const [productData, setProductData] = useState<any>(data);
   const [productList, setProductList] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(1);
+  const [isFullScreen, setIsFullScreen] = useState(false); // State for full-screen modal
 
   const fetchProductList = async () => {
     setIsLoading(true);
@@ -46,7 +49,7 @@ const ProductDetailsScreen = () => {
   };
 
   useFocusEffect(
-    React.useCallback(() => {
+    useCallback(() => {
       fetchProductList();
     }, [productData?._id])
   );
@@ -58,7 +61,6 @@ const ProductDetailsScreen = () => {
     try {
       await addToCart(_id, quantity, name, price).then(() => {
         ToastAndroid.show("Product added to cart.", 2000);
-        router.push("/(tabs)/cart");
       });
     } catch (error) {
       console.error("Error adding product to cart:", error);
@@ -69,23 +71,36 @@ const ProductDetailsScreen = () => {
     }
   };
 
+  // Prepare image for full-screen viewer
+  const images = [
+    {
+      url:
+        productData?.images
+          ? `${API_BASE_URL}${productData?.images.replace(/\\/g, "/")}`
+          : Image.resolveAssetSource(imgPlaceholder).uri,
+    },
+  ];
+
   return (
     <View style={styles.box}>
       <ScrollView style={styles.container}>
-        {/* Product Image */}
-        <Image
-          source={
-            productData?.images
-              ? {
-                  uri: `${API_BASE_URL}${productData?.images.replace(
-                    /\\/g,
-                    "/"
-                  )}`,
-                }
-              : imgPlaceholder
-          }
-          style={styles.productImage}
-        />
+        {/* Product Image with Full-Screen Trigger */}
+        <TouchableOpacity onPress={() => setIsFullScreen(true)}>
+          <Image
+            source={
+              productData?.images
+                ? {
+                    uri: `${API_BASE_URL}${productData?.images.replace(
+                      /\\/g,
+                      "/"
+                    )}`,
+                  }
+                : imgPlaceholder
+            }
+            style={styles.productImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
 
         {/* Product Details */}
         <View style={styles.productDetails}>
@@ -96,25 +111,6 @@ const ProductDetailsScreen = () => {
             {productData?.price ? `₹ ${productData.price}` : "₹ 00.0"}
           </Text>
         </View>
-
-        {/* Variations */}
-        {/* {productData?.colors && productData?.sizes && (
-                    <View style={styles.variations}>
-                        <Text style={styles.sectionTitle}>Variations</Text>
-                        <View style={styles.variationOptions}>
-                            <Text style={styles.variationText}>Colors:</Text>
-                            {productData.colors.map((color: string, index: number) => (
-                                <Text key={index}>{color}</Text>
-                            ))}
-                        </View>
-                        <View style={styles.variationOptions}>
-                            <Text style={styles.variationText}>Sizes:</Text>
-                            {productData.sizes.map((size: string, index: number) => (
-                                <Text key={index}>{size}</Text>
-                            ))}
-                        </View>
-                    </View>
-                )} */}
 
         {/* Description */}
         <View style={styles.ratingReviews}>
@@ -186,6 +182,28 @@ const ProductDetailsScreen = () => {
         </View>
       </ScrollView>
 
+      {/* Full-Screen Image Viewer Modal */}
+      <Modal
+        visible={isFullScreen}
+        transparent={true}
+        onRequestClose={() => setIsFullScreen(false)}
+      >
+        <ImageViewer
+          imageUrls={images}
+          enableSwipeDown={true}
+          onSwipeDown={() => setIsFullScreen(false)}
+          renderIndicator={() => null} // Hide default indicator
+          saveToLocalByLongPress={true}
+          backgroundColor="rgba(0,0,0,0.9)"
+        />
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => setIsFullScreen(false)}
+        >
+          <Ionicons name="close" size={30} color="#FFF" />
+        </TouchableOpacity>
+      </Modal>
+
       {/* Footer */}
       <View style={styles.footer}>
         <View style={styles.quantityControls}>
@@ -237,7 +255,7 @@ const ProductDetailsScreen = () => {
 
 export default ProductDetailsScreen;
 
-const styles: any = StyleSheet.create({
+const styles = StyleSheet.create({
   box: { flex: 1 },
   buttonStyle: { position: "absolute", left: 5, top: 5, padding: 5 },
   container: { flex: 1, backgroundColor: "#FFF" },
@@ -257,20 +275,6 @@ const styles: any = StyleSheet.create({
     paddingHorizontal: 16,
   },
   sectionTitle: { fontSize: 18, fontWeight: "bold" },
-  variations: { paddingHorizontal: 16 },
-  variationOptions: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  variationText: { marginRight: 10, marginLeft: 8, fontWeight: "bold" },
-  variationButton: {
-    padding: 5,
-    borderWidth: 1,
-    borderRadius: 4,
-    borderColor: "#DDD",
-    marginRight: 8,
-  },
   ratingReviews: { padding: 16 },
   mostPopular: { paddingHorizontal: 16, marginBottom: 15 },
   sectionHeader: {
@@ -279,6 +283,7 @@ const styles: any = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  seeAllText: { color: Colors.PRIMARY, fontSize: 16 },
   footer: {
     flexDirection: "row",
     alignItems: "center",
@@ -287,8 +292,6 @@ const styles: any = StyleSheet.create({
     paddingVertical: 5,
     backgroundColor: Colors?.SHADE_WHITE,
   },
-
-  /** Add these missing styles **/
   quantityControls: {
     flexDirection: "row",
     alignItems: "center",
@@ -307,21 +310,15 @@ const styles: any = StyleSheet.create({
     textAlign: "center",
     backgroundColor: Colors?.WHITE,
     color: "#fff",
-    // borderWidth:1,
-    // borderColor:Colors.PRIMARY,
-    shadowColor: Colors?.DARK_PRIMARY,
-    boxShadow: Colors?.PRIMARY,
     borderRadius: 4,
     marginHorizontal: 15,
     shadowOffset: { width: -2, height: 4 },
     shadowOpacity: 0.8,
     shadowRadius: 3,
     elevation: 2,
-    // shadowColor: '#52006A',
   },
   addButton: { color: Colors?.PRIMARY, fontSize: 25 },
   quantity: { fontSize: 18, fontWeight: "bold" },
-
   cartButton: {
     width: 200,
     flex: 1,
@@ -331,9 +328,6 @@ const styles: any = StyleSheet.create({
     backgroundColor: Colors.WHITE,
     padding: 5,
     borderRadius: 8,
-    shadowColor: Colors?.DARK_PRIMARY,
-    boxShadow: Colors?.PRIMARY,
-    marginHorizontal: 15,
     shadowOffset: { width: -2, height: 4 },
     shadowOpacity: 0.8,
     shadowRadius: 3,
@@ -342,7 +336,7 @@ const styles: any = StyleSheet.create({
   cart: { marginLeft: 10 },
   cartText: {
     textAlign: "center",
-    color: Colors?.PRIMARY,
+    color: Colors?.DARK_PRIMARY,
     fontWeight: "bold",
     fontSize: 16,
   },
@@ -375,7 +369,7 @@ const styles: any = StyleSheet.create({
   infoContainer: {
     marginTop: 10,
     width: "100%",
-    alignItems: "flex-start", // Changed 'left' to 'flex-start'
+    alignItems: "flex-start",
   },
   title: {
     fontSize: 14,
@@ -396,12 +390,19 @@ const styles: any = StyleSheet.create({
     color: "#FF6F61",
     marginTop: 5,
   },
-  ratingContainer: {
-    marginTop: 5,
-  },
   rating: {
     fontSize: 14,
     marginLeft: 5,
     color: "#555",
+  },
+  // New style for close button in full-screen modal
+  closeButton: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    zIndex: 1000,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    borderRadius: 20,
+    padding: 5,
   },
 });

@@ -4,7 +4,7 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const API_BASE_URL ='https://server.silkindia.co.in'// "http://192.168.54.199:5000"; // Replace with your actual API base URL
+export const API_BASE_URL = 'https://server.silkindia.co.in'  // "http://192.168.232.28:5000";  // Replace with your actual API base URL
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -21,13 +21,13 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error:any) => Promise.reject(error)
+  (error: any) => Promise.reject(error)
 );
 
 // Response Interceptor for Error Handling
 api.interceptors.response.use(
   (response) => response,
-  (error:any) => {
+  (error: any) => {
     if (!error.response) {
       // Network error or timeout
       console.error('Network Error: Please check your connection or try again later.');
@@ -44,7 +44,7 @@ api.interceptors.response.use(
 export const fetchAuthToken = async () => {
   try {
     return await AsyncStorage.getItem('accessToken');
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching auth token:', error);
   }
 };
@@ -54,7 +54,7 @@ export const fetchUserRegister = async (name: string, mobileNo: string, password
   try {
     const response = await api.post('/api/auth/register', { name, mobileNo, password, email, gst });
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error registering user:', error);
     throw error;
   }
@@ -70,7 +70,7 @@ export const fetchUserLogin = async (mobileNo: string, password: string) => {
       await AsyncStorage.setItem('userData', JSON.stringify(user));
     }
     return { token, user };
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error logging in:', error);
     throw error;
   }
@@ -82,7 +82,7 @@ export const fetchUserLogout = async () => {
     await AsyncStorage.removeItem('accessToken');
     await AsyncStorage.removeItem('userData');
     console.log('User logged out successfully.');
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error during logout:', error);
     throw error;
   }
@@ -93,7 +93,7 @@ export const fetchCategory = async () => {
   try {
     const response = await api.get('/api/category');
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching categories:', error);
     throw error;
   }
@@ -104,7 +104,7 @@ export const fetchSubCategory = async () => {
   try {
     const response = await api.get('/api/subcategories');
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching subcategories:', error);
     throw error;
   }
@@ -115,7 +115,7 @@ export const fetchProducts = async (filter?: string | undefined) => {
   try {
     const response = await api.get(`/api/product${filter ? `?${filter}` : ''}`);
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching products:', error);
     throw error;
   }
@@ -126,7 +126,7 @@ export const fetchBanners = async () => {
   try {
     const response = await api.get('/api/banner');
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching banners:', error);
     throw error;
   }
@@ -137,7 +137,7 @@ export const fetchProductById = async (id: any) => {
   try {
     const response = await api.get(`/api/product/${id}`);
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching product by ID:', error);
     throw error;
   }
@@ -159,7 +159,7 @@ export const addToCart = async (product: string, quantity: number, name: string,
       headers: { Authorization: `Bearer ${authToken}` },
     });
     return response;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error adding to cart:', error.message);
     throw error;
   }
@@ -169,6 +169,7 @@ export const addToCart = async (product: string, quantity: number, name: string,
 export const fetchCart = async () => {
   try {
     const authToken = await AsyncStorage.getItem('accessToken');
+    const cachedProfile = await AsyncStorage.getItem('userData');
     if (!authToken) {
       throw new Error('Authentication token is missing.');
     }
@@ -176,7 +177,7 @@ export const fetchCart = async () => {
       headers: { Authorization: `Bearer ${authToken}` },
     });
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching cart:', error.message);
     throw error;
   }
@@ -194,7 +195,7 @@ export const fetchCartItemRemove = async (id: any) => {
     });
     console.log('Item Deleted Successfully:', response.data);
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error deleting cart item:', error.message);
     throw error;
   }
@@ -214,7 +215,7 @@ export const fetchClearCartItem = async () => {
     });
     console.log('Items Removed Successfully:', response.data);
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error deleting cart items:', error.message);
     throw error;
   }
@@ -233,7 +234,7 @@ export const fetchUpdateAddress = async (address: { street: string; city: string
       headers: { Authorization: `Bearer ${authToken}` },
     });
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error updating address:', error.message);
     throw error;
   }
@@ -253,18 +254,18 @@ export const fetchPlaceOrder = async (items: any, totalAmount: any) => {
     });
     console.log('Order Placed:', response.data);
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error placing order:', error.message);
     throw error;
   }
 };
 
 // Fetch Orders
-export const fetchOrders = async (status:any) => {
+export const fetchOrders = async (status: any) => {
   try {
     const response = await api.get(`/api/orders?status=${status}`);
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching orders:', error);
     throw error;
   }
@@ -275,7 +276,7 @@ export const fetchUserProfile = async () => {
   try {
     const response = await api.get('/user/profile');
     return response.data;
-  } catch (error:any) {
+  } catch (error: any) {
     console.error('Error fetching user profile:', error);
     throw error;
   }

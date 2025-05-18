@@ -1,22 +1,20 @@
-
-
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     View,
     Text,
     TouchableOpacity,
     FlatList,
     StyleSheet,
-    ScrollView,
     RefreshControl,
     Modal,
     TextInput,
     Alert,
     ToastAndroid,
+    Image,
+    ActivityIndicator,
 } from 'react-native';
-// import Icon from 'react-native-vector-icons/Ionicons';
 import {
+    API_BASE_URL,
     fetchCart,
     fetchCartItemRemove,
     fetchClearCartItem,
@@ -44,21 +42,24 @@ const Cart = () => {
         pincode: ""
     });
     const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
-    const [newAddress, setNewAddress] = useState('');
+    const [page, setPage] = useState(1);
+    const [limit] = useState(10); // Number of items per page
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
     const router = useRouter();
+
     const getUserData = async () => {
-        const cachedProfile: any = await fetchCurrentUser()
+        const cachedProfile: any = await fetchCurrentUser();
         if (cachedProfile?.status) {
             setAddress(cachedProfile?.details?.user?.address);
         }
-    }
+    };
 
     const handleAddressChange = (field: string, value: string) => {
         setAddress((prevAddress: any) => ({ ...prevAddress, [field]: value }));
     };
 
     const handleSubmitAddress = async () => {
-
         if (!address.streetAddress || !address.country || !address.city || !address.state || !address.pincode) {
             Alert.alert('Error', 'Please fill in all address fields.');
             return;
@@ -78,27 +79,34 @@ const Cart = () => {
 
     const calculateTotalPrice = () => {
         const items = extractItemsArray(cartItems);
-
         const total = items.reduce((sum: any, item: any) => sum + item?.product?.price * item?.quantity, 0);
-        console.log(total)
         setTotalPrice(total);
     };
 
-    const fetchCartDetails = async () => {
+    const fetchCartDetails = async (pageNum: number, reset = false) => {
+        if (isLoadingMore && !reset) return;
+        setIsLoadingMore(true);
         try {
-            const response = await fetchCart();
-            const data = response.data.result;
-            setCartItems(data || []);
-            if (data.length !== 0) {
-                ToastAndroid.show('cart items', 2000);
-
+            const response = await fetchCart(`page=${pageNum}&limit=${limit}`);
+            const data = response.data.result || [];
+            if (reset) {
+                setCartItems(data);
+            } else {
+                setCartItems((prevItems: any) => [...prevItems, ...data]);
             }
-            else {
+            setHasMore(data.length === limit); // If less than limit, no more items
+            if (data.length === 0 && reset) {
                 ToastAndroid.show('No item in cart', 2000);
+            } 
 
+            if (data.length !== 0) {
+                ToastAndroid.show('Cart items loaded', 2000);
             }
         } catch (error) {
             console.error('Error fetching cart details:', error);
+            ToastAndroid.show('Failed to load cart items', 2000);
+        } finally {
+            setIsLoadingMore(false);
         }
     };
 
@@ -119,9 +127,9 @@ const Cart = () => {
             prevItems.map((item: any) =>
                 item?.product === id
                     ? {
-                        ...item,
-                        quantity: type === 'increment' ? item.quantity + 1 : Math.max(item?.quantity - 1, 1),
-                    }
+                          ...item,
+                          quantity: type === 'increment' ? item.quantity + 1 : Math.max(item?.quantity - 1, 1),
+                      }
                     : item
             )
         );
@@ -129,42 +137,54 @@ const Cart = () => {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        await fetchCartDetails();
+        setPage(1);
+        await fetchCartDetails(1, true);
         await calculateTotalPrice();
         setRefreshing(false);
     };
 
+    const loadMoreItems = () => {
+        if (hasMore && !isLoadingMore) {
+            setPage((prevPage) => prevPage + 1);
+        }
+    };
+
+    useEffect(() => {
+        if (page > 1) {
+            fetchCartDetails(page);
+        }
+    }, [page]);
+
     useFocusEffect(
-        React.useCallback(() => {
-            fetchCartDetails();
-            getUserData()
+        useCallback(() => {
+            setPage(1);
+            fetchCartDetails(1, true);
+            getUserData();
         }, [])
     );
 
     useFocusEffect(
-        React.useCallback(() => {
+        useCallback(() => {
             calculateTotalPrice();
         }, [cartItems])
     );
 
     const extractItemsArray = (carts: any) => {
         return carts.map((cart: any) => cart.items[0]);
-    }
+    };
 
     const totalAmountCalcutalte = (cart: any) => {
-        console.log(cart)
         return cart?.reduce((sum: any, item: any) => sum + (item.price * item?.quantity), 0);
-    }
+    };
 
     const handlePlaceOrder = async () => {
         const cart = extractItemsArray(cartItems);
         const items = extractItemsArray(cartItems);
         const totalAmount = totalAmountCalcutalte(cart);
         try {
-            const res: any = await fetchPlaceOrder(items,totalAmount);
+            const res: any = await fetchPlaceOrder(items, totalAmount);
             if (res.success) {
-                const res:any= await fetchClearCartItem()
-                console.log(res.data,"dfjksfkjdsk")
+                await fetchClearCartItem();
                 ToastAndroid.show('Your order has been placed successfully!', 2000);
                 router.push('/(tabs)/shop');
             } else {
@@ -176,71 +196,101 @@ const Cart = () => {
     };
 
     return (
-        <ScrollView
-            contentContainerStyle={{ flex: 1 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-            <View style={styles.container}>
-                <Text style={styles.header}>
-                    Cart <Text style={styles.cartCount}>{cartItems.length}</Text>
-                </Text>
+        <View style={styles.container}>
+            <Text style={styles.header}>
+                Cart <Text style={styles.cartCount}>{cartItems.length}</Text>
+            </Text>
 
-                <View style={styles.shippingContainer}>
-                    <View style={styles.shippingSubContainer}>
-                        <Text style={styles.shippingTitle}>Shipping Address</Text>
-                        <TouchableOpacity style={styles.editButton} onPress={() => setIsAddressModalVisible(true)}>
-                            <Feather name="edit-3" size={20} color="#800020" />
-                        </TouchableOpacity>
-                    </View>
-                    <Text style={styles.shippingAddress}>
-                        {address?.pincode ? `${address.streetAddress}, ${address.state}, ${address?.country} - ${address.pincode}` : 'No address added. Please add an address.'}
-                    </Text>
-                </View>
-
-                <FlatList
-                    data={cartItems}
-                    keyExtractor={(item: any) => item?._id}
-                    renderItem={({ item }) => (
-                        <View style={styles.cartItem}>
-                            <View style={styles.cartDetails}>
-                                <Text style={styles.itemTitle}>{item?.items[0]?.name}</Text>
-                            </View>
-                            <View style={{ marginRight: 20 }} >
-                                <Text style={styles.itemTitle}>{item?.items[0]?.quantity}</Text>
-                            </View>
-                            <TouchableOpacity onPress={() => handleRemoveItem(item?._id)} style={styles.deleteButton}>
-                                <Octicons name="trash" size={20} color="#FF0000" />
-                            </TouchableOpacity>
-                        </View>
-                    )}
-                />
-
-                <View style={styles.footer}>
-                    <TouchableOpacity style={styles.checkoutButton} onPress={handlePlaceOrder}>
-                        <Text style={styles.checkoutText}>Place Order</Text>
+            <View style={styles.shippingContainer}>
+                <View style={styles.shippingSubContainer}>
+                    <Text style={styles.shippingTitle}>Shipping Address</Text>
+                    <TouchableOpacity style={styles.editButton} onPress={() => setIsAddressModalVisible(true)}>
+                        <Feather name="edit-3" size={20} color="#800020" />
                     </TouchableOpacity>
                 </View>
+                <Text style={styles.shippingAddress}>
+                    {address?.pincode ? `${address.streetAddress}, ${address.state}, ${address?.country} - ${address.pincode}` : 'No address added. Please add an address.'}
+                </Text>
             </View>
 
-            <Modal visible={isAddressModalVisible} animationType="slide" transparent={true} onRequestClose={() => setIsAddressModalVisible(false)}>
+            <FlatList
+                data={cartItems}
+                keyExtractor={(item: any) => item?._id}
+                renderItem={({ item }) => (
+                    <View style={styles.cartItem}>
+                        <View style={styles.cartDetails}>
+                            <Image
+                                source={
+                                    item?.items[0]?.product?.images
+                                        ? {
+                                              uri: `${API_BASE_URL}${item?.items[0]?.product?.images.replace(/\\/g, "/")}`,
+                                          }
+                                        : img
+                                }
+                                style={{ width: 50, height: 50 }}
+                                resizeMode="contain"
+                            />
+                            <Text style={styles.itemTitle}>{item?.items[0].product?.name}</Text>
+                        </View>
+                        <View style={{ marginRight: 20 }}>
+                            <Text style={styles.itemTitle}>{item?.items[0]?.quantity}</Text>
+                        </View>
+                        <TouchableOpacity onPress={() => handleRemoveItem(item?._id)} style={styles.deleteButton}>
+                            <Octicons name="trash" size={20} color="#FF0000" />
+                        </TouchableOpacity>
+                    </View>
+                )}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                onEndReached={loadMoreItems}
+                onEndReachedThreshold={0.5}
+                ListFooterComponent={
+                    isLoadingMore ? (
+                        <View style={styles.loader}>
+                            <ActivityIndicator size="small" color="#800020" />
+                        </View>
+                    ) : null
+                }
+            />
+
+            <View style={styles.footer}>
+                <TouchableOpacity style={styles.checkoutButton} onPress={handlePlaceOrder}>
+                    <Text style={styles.checkoutText}>Place Order</Text>
+                </TouchableOpacity>
+            </View>
+
+            <Modal
+                visible={isAddressModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsAddressModalVisible(false)}
+            >
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalHeader}>Update Address</Text>
                         {['streetAddress', 'city', 'state', 'country', 'pincode'].map((field: any, index: any) => (
-                            <TextInput key={index} placeholder={`Please enter your ${field}`} value={address[field]} onChangeText={(value) => handleAddressChange(field, value)} style={styles.input} />
+                            <TextInput
+                                key={index}
+                                placeholder={`Please enter your ${field}`}
+                                value={address[field]}
+                                onChangeText={(value) => handleAddressChange(field, value)}
+                                style={styles.input}
+                            />
                         ))}
                         <View style={styles.modalActions}>
                             <TouchableOpacity onPress={handleSubmitAddress} style={styles.submitButton}>
-                                <Text style={styles.buttonText} >Submit</Text>
+                                <Text style={styles.buttonText}>Submit</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => setIsAddressModalVisible(false)} style={styles.cancelButton}>
+                            <TouchableOpacity
+                                onPress={() => setIsAddressModalVisible(false)}
+                                style={styles.cancelButton}
+                            >
                                 <Text>Cancel</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </View>
             </Modal>
-        </ScrollView>
+        </View>
     );
 };
 
@@ -250,30 +300,26 @@ const styles: any = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#FFF' },
     header: { fontSize: 24, fontWeight: 'bold', margin: 16 },
     cartCount: { fontSize: 18, color: '#800020' },
-    shippingSubContainer: { flexDirection: "row", width:"95%", marginHorizontal:"auto" },
+    shippingContainer: { marginHorizontal: 16, marginBottom: 16 },
+    shippingSubContainer: { flexDirection: "row", width: "95%", marginHorizontal: "auto" },
     shippingTitle: { fontWeight: 'bold', fontSize: 16 },
-    shippingAddress: { fontSize: 14, color: '#555', marginTop: 0, width:"95%", marginHorizontal:"auto" },
+    shippingAddress: { fontSize: 14, color: '#555', marginTop: 0, width: "95%", marginHorizontal: "auto" },
     editButton: { padding: 8 },
     cartItem: {
         flexDirection: 'row',
         alignItems: 'center',
         marginHorizontal: 16,
         marginVertical: 8,
-        padding: 16,
+        paddingHorizontal: 16,
+        paddingVertical: 5,
         borderWidth: 1,
         borderColor: '#DDD',
         borderRadius: 8,
     },
-    cartDetails: { flex: 1, marginLeft: 16 },
+    cartDetails: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, marginLeft: 16 },
     itemTitle: { fontWeight: 'bold' },
-    itemDetails: { fontSize: 12, color: '#555' },
-    itemPrice: { fontSize: 14, fontWeight: 'bold', marginTop: 8 },
-    quantityControls: { flexDirection: 'row', alignItems: 'center' },
-    quantityButton: { padding: 8 },
-    quantity: { fontSize: 16, marginHorizontal: 8 },
     deleteButton: { padding: 8 },
     footer: { flexDirection: "row", justifyContent: "center", alignContent: "center", margin: 16, alignItems: 'flex-end' },
-    totalPrice: { fontSize: 18, fontWeight: 'bold' },
     checkoutButton: {
         backgroundColor: '#fff',
         color: Colors.PRIMARY,
@@ -285,7 +331,6 @@ const styles: any = StyleSheet.create({
         borderColor: Colors.PRIMARY,
         textAlign: "center",
         width: "98%"
-
     },
     checkoutText: { color: Colors.PRIMARY, fontWeight: 'bold', textAlign: "center", fontSize: 16 },
     modalContainer: {
@@ -306,4 +351,5 @@ const styles: any = StyleSheet.create({
     submitButton: { backgroundColor: '#800020', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 4 },
     cancelButton: { backgroundColor: '#DDD', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 4 },
     buttonText: { color: '#FFF', fontWeight: 'bold' },
+    loader: { padding: 16, alignItems: 'center' },
 });
