@@ -87,7 +87,7 @@ const Cart = () => {
         if (isLoadingMore && !reset) return;
         setIsLoadingMore(true);
         try {
-            const response = await fetchCart(`page=${pageNum}&limit=${limit}`);
+            const response = await fetchCart(`?page=${pageNum}&limit=${limit}`);
             const data = response.data.result || [];
             if (reset) {
                 setCartItems(data);
@@ -182,7 +182,8 @@ const Cart = () => {
         const items = extractItemsArray(cartItems);
         const totalAmount = totalAmountCalcutalte(cart);
         try {
-            const res: any = await fetchPlaceOrder(items, totalAmount);
+            const res: any = await fetchPlaceOrder(items, 5000);
+            console.log('Order Response:', res);
             if (res.success) {
                 await fetchClearCartItem();
                 ToastAndroid.show('Your order has been placed successfully!', 2000);

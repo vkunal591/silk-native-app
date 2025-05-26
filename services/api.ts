@@ -166,17 +166,24 @@ export const addToCart = async (product: string, quantity: number, name: string,
 };
 
 // Fetch Cart
-export const fetchCart = async () => {
+export const fetchCart = async (filter: any) => {
   try {
     const authToken = await AsyncStorage.getItem('accessToken');
     const cachedProfile = await AsyncStorage.getItem('userData');
     if (!authToken) {
       throw new Error('Authentication token is missing.');
     }
-    const response = await api.get('/api/cart', {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
-    return response.data;
+    if(!filter) {
+      const response = await api.get(`/api/cart`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      return response.data;
+    }else {
+      const response = await api.get(`/api/cart${filter}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      return response.data;
+    }
   } catch (error: any) {
     console.error('Error fetching cart:', error.message);
     throw error;
