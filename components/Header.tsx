@@ -1,10 +1,20 @@
+import React, { useRef, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  Animated,
+  TouchableOpacity,
+  Dimensions,
+  SafeAreaView,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Colors } from "@/contants/Colors";
 
-
-import { Colors } from '@/contants/Colors';
-import { Entypo, Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useCallback } from 'react';
-import { View, Text, TextInput, StyleSheet, Animated, TouchableOpacity } from 'react-native';
+// Get window dimensions for responsiveness
+const { width } = Dimensions.get("window");
 
 interface HeaderProps {
   Title: string;
@@ -13,100 +23,113 @@ interface HeaderProps {
   onSearchClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ Title, searchInput, setSearchInput, onSearchClick }) => {
-  const slideDown = useRef(new Animated.Value(-100)).current; // Starts above the screen
+const Header: React.FC<HeaderProps> = ({
+  Title,
+  searchInput,
+  setSearchInput,
+  onSearchClick,
+}) => {
+  const slideDown = useRef(new Animated.Value(-100)).current;
   const router = useRouter();
 
-  useFocusEffect(
-    useCallback(() => {
-      // Slide down animation when screen is focused
-      Animated.timing(slideDown, {
-        toValue: 0, // Move back to its natural position
-        duration: 800,
-        useNativeDriver: true, // Optimized for better performance
-      }).start();
-    }, [])
-  );
+  // Animation on mount
+  useEffect(() => {
+    Animated.timing(slideDown, {
+      toValue: 0,
+      duration: 800,
+      useNativeDriver: true,
+    }).start();
+  }, [slideDown]);
 
-  const handleSearchClick = () => {
+  const handleSearchClick = useCallback(() => {
     if (searchInput.trim()) {
-      onSearchClick(); // Call the search function only if the input is not empty
-    } else {
-      console.log("Search input is empty");
+      onSearchClick();
     }
-  };
+  }, [searchInput, onSearchClick]);
 
   return (
-    <Animated.View
-      style={[
-        styles.headerContainer,
-        { transform: [{ translateY: slideDown }] },
-      ]}
-    >
-      <Text
-        style={styles.title}
-        onPress={() => {
-          if (Title === "shop") router.replace('/(tabs)/shop');
-        }}
+    <SafeAreaView style={styles.safeContainer}>
+      <Animated.View
+        style={[
+          styles.headerContainer,
+          { transform: [{ translateY: slideDown }] },
+        ]}
       >
-        <Entypo name={Title} size={30} color={Colors.PRIMARY} />
-      </Text>
-      <View style={styles.inputWrapper}>
-        <TextInput
-          placeholder="Search"
-          style={styles.searchBar}
-          value={searchInput}
-          onChangeText={setSearchInput} // Use directly to update search input state
-        />
-        <TouchableOpacity onPress={handleSearchClick}>
+        <Text
+          style={styles.title}
+          onPress={() => {
+            if (Title.toLowerCase() === "shop") {
+              router.replace("/(tabs)/shop");
+            }
+          }}
+        >
           <Ionicons
-            name="search"
-            size={25}
-            style={styles.searchIcon}
+            name="storefront-outline"
+            size={width >= 768 ? 36 : 30}
             color={Colors.PRIMARY}
           />
-        </TouchableOpacity>
-      </View>
-    </Animated.View>
+        </Text>
+        <View style={styles.inputWrapper}>
+          <TextInput
+            placeholder="Search"
+            style={styles.searchBar}
+            value={searchInput}
+            onChangeText={setSearchInput}
+            returnKeyType="search"
+            onSubmitEditing={handleSearchClick}
+          />
+          <TouchableOpacity onPress={handleSearchClick}>
+            <Ionicons
+              name="search"
+              size={width >= 768 ? 30 : 25}
+              style={styles.searchIcon}
+              color={Colors.PRIMARY}
+            />
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeContainer: {
+    backgroundColor: "#f2f2f2",
+  },
   headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 0,
-    width: '100%',
-    padding: 10,
-    paddingHorizontal: 0,
-    backgroundColor: '#f2f2f2',
-    elevation: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: width * 0.03,
+    paddingVertical: 10,
+    backgroundColor: "#f2f2f2",
   },
   title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    width: '10%',
-    marginLeft: 10,
+    fontSize: width >= 768 ? 28 : 22,
+    fontWeight: "bold",
+    width: width * 0.15,
+    textAlign: "center",
   },
   searchBar: {
-    width: '85%',
-    backgroundColor: '#fff',
-    padding: 7,
-    margin: 5,
+    flex: 1,
+    backgroundColor: "#fff",
+    padding: width >= 768 ? 10 : 7,
+    marginVertical: 5,
+    fontSize: width >= 768 ? 18 : 16,
+    borderRadius: 10,
   },
   searchIcon: {
-    marginRight: 20,
+    marginHorizontal: width >= 768 ? 15 : 10,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#FFF',
-    backgroundColor: '#fff',
+    borderColor: "#fff",
+    backgroundColor: "#fff",
     borderRadius: 25,
-    paddingHorizontal: 15,
-    width: '80%',
-    marginRight: 10,
+    width: width * 0.75,
+    overflow: "hidden",
   },
 });
 

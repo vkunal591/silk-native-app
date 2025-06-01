@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { API_BASE_URL } from "@/services/api";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -8,98 +9,75 @@ import {
   StyleSheet,
   Dimensions,
   ActivityIndicator,
-} from 'react-native';
-import { API_BASE_URL } from '@/services/api';
-
-const { width, height } = Dimensions.get('window');
-
-// Local banner image import
-const bannerImage = require('../assets/images/banner.png');
+} from "react-native";
 
 // Default slides data
-const slides = [
-  {
-    id: '1',
-    title: 'Big Sale',
-    desc: 'Up to 50%',
-    image: bannerImage,
-  },
-  {
-    id: '2',
-    title: 'Mega Sale',
-    desc: 'Up to 70%',
-    image: bannerImage,
-  },
-  {
-    id: '3',
-    title: 'Today Sale',
-    desc: 'Up to 90%',
-    image: bannerImage,
-  },
+const bannerImage = require("../assets/images/banner.png");
+const defaultSlides = [
+  { id: "1", title: "Big Sale", desc: "Up to 50%", image: bannerImage },
+  { id: "2", title: "Mega Sale", desc: "Up to 70%", image: bannerImage },
+  { id: "3", title: "Today Sale", desc: "Up to 90%", image: bannerImage },
 ];
 
-const BannerSlider = ({ data = slides }) => {
-  const flatListRef = useRef<any>(null);
+// Get window dimensions for responsiveness
+const { width } = Dimensions.get("window");
+
+const BannerSlider = ({ data = defaultSlides }) => {
+  const flatListRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(!data || data.length === 0);
 
-  // If no data, handle it with loading state
+  // Auto-scroll effect
   useEffect(() => {
-    if (data?.length > 0) {
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-  }, [data]);
-
-  // Handle scrolling to the next slide
-  useEffect(() => {
-    if (data?.length === 0) return;
+    if (!data || data.length <= 1) return;
 
     const interval = setInterval(() => {
       const nextIndex = (currentIndex + 1) % data.length;
-      if (flatListRef.current) {
-        try {
-          flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
-          setCurrentIndex(nextIndex);
-        } catch (error) {
-          console.error('Error scrolling to index:', error);
-        }
-      }
+      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      setCurrentIndex(nextIndex);
     }, 3000);
 
     return () => clearInterval(interval);
   }, [currentIndex, data]);
 
-  const onScroll = (event: any) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / width);
-    setCurrentIndex(index);
-  };
+  // Handle scroll event
+  const onScroll = useCallback(
+    (event) => {
+      const offsetX = event.nativeEvent.contentOffset.x;
+      const index = Math.round(offsetX / width);
+      setCurrentIndex(index);
+    },
+    [width]
+  );
 
-  const goToSlide = (index: number) => {
-    if (index < 0 || index >= data.length) return;
+  // Navigate to specific slide
+  const goToSlide = useCallback(
+    (index) => {
+      if (index < 0 || index >= data.length || !flatListRef.current) return;
+      flatListRef.current.scrollToIndex({ index, animated: true });
+      setCurrentIndex(index);
+    },
+    [data]
+  );
 
-    if (flatListRef.current) {
-      try {
-        flatListRef.current?.scrollToIndex({ index, animated: true });
-        setCurrentIndex(index);
-      } catch (error) {
-        console.error('Error scrolling to index:', error);
-      }
-    }
-  };
-
-  const renderItem = ({ item }: any) => {
+  // Render individual banner
+  const renderItem = useCallback(({ item }) => {
     const imageSource =
-      typeof item.image === 'string'
-        ? { uri: `${API_BASE_URL}${item?.image.replace(/\\/g, "/")}` }
+      typeof item.image === "string"
+        ? {
+            uri: item.image.startsWith("http")
+              ? item.image
+              : `${API_BASE_URL}${item.image.replace(/\\/g, "/")}`,
+          }
         : item.image;
 
     return (
       <View style={styles.slide}>
-        <ImageBackground source={imageSource} style={styles.banner} resizeMode="cover">
-          {/* Black overlay for better text readability */}
+        <ImageBackground
+          source={imageSource}
+          style={styles.banner}
+          resizeMode="cover"
+        >
           <View style={styles.overlay} />
           <View style={styles.textContainer}>
             <Text style={styles.bigSaleText}>{item?.title}</Text>
@@ -108,22 +86,16 @@ const BannerSlider = ({ data = slides }) => {
         </ImageBackground>
       </View>
     );
-  };
+  }, []);
 
-  // Show loading indicator when data is being loaded
-  if (loading || !data) {
+  // Combined loading and empty state
+  if (isLoading || !data || data.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#000" />
-        <Text>Loading...</Text>
-      </View>
-    );
-  }
-
-  if (data.length === 0) {
-    return (
-      <View style={styles.emptyContainer}>
-        <Text>No Banners Available</Text>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>
+          {data?.length === 0 ? "No Banners Available" : "Loading..."}
+        </Text>
       </View>
     );
   }
@@ -134,14 +106,21 @@ const BannerSlider = ({ data = slides }) => {
         ref={flatListRef}
         data={data}
         renderItem={renderItem}
-        keyExtractor={(item) => item?.id}
+        keyExtractor={(item) => item._id.toString()}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         snapToAlignment="center"
         decelerationRate="fast"
         onScroll={onScroll}
-        getItemLayout={(data, index) => ({ length: width, offset: width * index, index })}
+        initialNumToRender={1}
+        maxToRenderPerBatch={3}
+        removeClippedSubviews
+        getItemLayout={(data, index) => ({
+          length: width,
+          offset: width * index,
+          index,
+        })}
       />
       <View style={styles.pagination}>
         {data.map((_, index) => (
@@ -158,72 +137,73 @@ const BannerSlider = ({ data = slides }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: width - 25,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: width * 0.95,
+    margin: "auto",
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: 10,
-    overflow: 'hidden',
-    marginHorizontal: 'auto',
+    overflow: "hidden",
   },
   slide: {
-    width: width - 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width,
+    justifyContent: "center",
+    alignItems: "center",
     borderRadius: 10,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   banner: {
-    width: width - 25,
-    height: height * 0.25,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    overflow: 'hidden',
+    width,
+    height: width >= 768 ? 300 : width * 0.5, // Larger height for tablets
+    justifyContent: "center",
+    alignItems: "center",
   },
   overlay: {
-    ...StyleSheet.absoluteFillObject, // Covers the entire ImageBackground
-    backgroundColor: 'rgba(0, 0, 0, 0.1)', // Semi-transparent black
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.2)", // Darker overlay for better contrast
   },
   textContainer: {
-    alignItems: 'center',
-    position: 'absolute', // Ensures text is above the overlay
+    alignItems: "center",
+    position: "absolute",
   },
   bigSaleText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: width >= 768 ? 32 : 24,
+    fontWeight: "bold",
+    color: "#fff",
   },
   subtitle: {
-    fontSize: 18,
-    color: '#fff',
+    fontSize: width >= 768 ? 20 : 16,
+    color: "#fff",
     marginTop: 5,
   },
   pagination: {
-    flexDirection: 'row',
-    position: 'absolute',
-    bottom: 15,
-    alignSelf: 'center',
+    flexDirection: "row",
+    position: "absolute",
+    bottom: 10,
+    alignSelf: "center",
   },
   dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#ccc',
-    marginHorizontal: 5,
+    width: width >= 768 ? 12 : 8,
+    height: width >= 768 ? 12 : 8,
+    borderRadius: width >= 768 ? 6 : 4,
+    backgroundColor: "rgba(255, 255, 255, 0.5)",
+    marginHorizontal: width >= 768 ? 6 : 4,
   },
   activeDot: {
-    backgroundColor: '#fff',
-    width: 12,
-    height: 12,
+    backgroundColor: "#fff",
+    width: width >= 768 ? 14 : 10,
+    height: width >= 768 ? 14 : 10,
+    borderRadius: width >= 768 ? 7 : 5,
   },
   loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width,
+    height: width >= 768 ? 300 : width * 0.5,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  loadingText: {
+    fontSize: width >= 768 ? 18 : 14,
+    color: "#000",
+    marginTop: 10,
   },
 });
 

@@ -1,181 +1,274 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { memo, useState, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
-  Image,
-  Alert,
-  ScrollView,
+  Pressable,
+  FlatList,
   ToastAndroid,
-  ActivityIndicator,  // Added for loading spinner
-} from 'react-native';
+  ActivityIndicator,
+  Dimensions,
+  SafeAreaView,
+} from "react-native";
+import { EvilIcons, MaterialIcons } from "@expo/vector-icons";
 import {
   fetchUserProfile,
   fetchUserLogout,
   fetchOrders,
-} from '../../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { Entypo, EvilIcons, MaterialIcons } from '@expo/vector-icons';
-import { Colors } from '@/contants/Colors';
+} from "../../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Colors } from "@/contants/Colors";
 
-const Account = () => {
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('To Pay');
-  const [isLoading, setIsLoading] = useState(false); // New state for loading indicator
-  const [error, setError] = useState(''); // New state for handling errors
+const { width } = Dimensions.get("window");
+
+interface UserProfile {
+  name?: string;
+  mobile?: string;
+}
+
+interface Order {
+  id: string;
+  // Add other order properties as needed
+}
+
+const Account = memo(() => {
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [activeTab, setActiveTab] = useState("To Pay");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  const loadUserProfile = async () => {
-    setIsLoading(true); // Set loading to true before fetching
-    setError(''); // Reset error state before fetching
+  const loadUserProfile = useCallback(async () => {
+    setIsLoading(true);
+    setError("");
     try {
-      const cachedProfile = await AsyncStorage.getItem('userData');
-      console.log(cachedProfile)
+      const cachedProfile = await AsyncStorage.getItem("userData");
       if (cachedProfile) {
         setUserProfile(JSON.parse(cachedProfile));
       } else {
         const profile = await fetchUserProfile();
         setUserProfile(profile);
-        await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+        await AsyncStorage.setItem("userProfile", JSON.stringify(profile));
       }
     } catch (error) {
-      setError('Error loading user profile. Please try again later.');
-      console.error('Error loading user profile:', error);
+      setError("Error loading user profile. Please try again later.");
+      console.error("Error loading user profile:", error);
     } finally {
-      setIsLoading(false); // Set loading to false after fetching
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  const loadOrders = async (status: string) => {
-    setIsLoading(true); // Set loading to true before fetching
-    setError(''); // Reset error state before fetching
+  const loadOrders = useCallback(async (status: string) => {
+    setIsLoading(true);
+    setError("");
     try {
-      const orders = await fetchOrders(status);
-      setOrders(orders);
+      const ordersData = await fetchOrders(status);
+      setOrders(ordersData);
     } catch (error) {
-      setError('Error loading orders. Please try again later.');
-      console.error('Error loading orders:', error);
+      setError("Error loading orders. Please try again later.");
+      console.error("Error loading orders:", error);
     } finally {
-      setIsLoading(false); // Set loading to false after fetching
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await fetchUserLogout();
-      router.push('/auth/signin');
-      ToastAndroid.show('You have successfully logged out!', ToastAndroid.SHORT);
+      await AsyncStorage.removeItem("userData");
+      await AsyncStorage.removeItem("userProfile");
+      router.push("/auth/signin");
+      ToastAndroid.show(
+        "You have successfully logged out!",
+        ToastAndroid.SHORT
+      );
     } catch (error) {
-      console.error('Error during logout:', error);
-      Alert.alert(
-        'Error',
-        'An error occurred during logout. Please try again.'
+      console.error("Error during logout:", error);
+      ToastAndroid.show(
+        "Error during logout. Please try again.",
+        ToastAndroid.LONG
       );
     }
-  };
+  }, [router]);
 
   useFocusEffect(
     useCallback(() => {
       loadUserProfile();
       loadOrders(activeTab);
-    }, [activeTab])
+    }, [activeTab, loadUserProfile, loadOrders])
   );
+
+  const renderOrder = useCallback(
+    ({ item }: { item: Order }) => (
+      <View style={styles.orderItem}>
+        <Text style={styles.orderText}>Order ID: {item.id}</Text>
+      </View>
+    ),
+    []
+  );
+
+  const tabs = [""]; // Updated tabs
 
   return (
-    <ScrollView style={styles.container}>
+    <SafeAreaView style={styles.safeContainer}>
       {isLoading ? (
-        <ActivityIndicator size="large" color={Colors.PRIMARY} style={styles.loadingIndicator} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
       ) : (
-        <>
-          {/* Profile Section */}
-          <View style={styles.profileSection}>
-            <Text style={styles.sectionTitle}>Profile</Text>
-            <View style={styles.profileInfo}>
-              <EvilIcons name='user' size={60} style={styles.profileImage} />
-              <View style={styles.profileDetails}>
-                <Text style={styles.profileName}>{userProfile?.name || 'No name available'}</Text>
-                <Text style={styles.profileEmail}>{userProfile?.mobile || 'No mobile available'}</Text>
+        <FlatList
+          ListHeaderComponent={
+            <>
+              <View style={styles.profileSection}>
+                <Text style={styles.sectionTitle}>Profile</Text>
+                <View style={styles.profileInfo}>
+                  <EvilIcons
+                    name="user"
+                    size={width >= 768 ? 80 : 60}
+                    style={styles.profileImage}
+                  />
+                  <View style={styles.profileDetails}>
+                    <Text style={styles.profileName}>
+                      {userProfile?.name || "No name available"}
+                    </Text>
+                    <Text style={styles.profileEmail}>
+                      {userProfile?.mobile || "No mobile available"}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={handleLogout}
+                    accessibilityLabel="Log out"
+                  >
+                    <MaterialIcons
+                      name="logout"
+                      size={width >= 768 ? 36 : 30}
+                      color={Colors.PRIMARY}
+                    />
+                  </Pressable>
+                </View>
               </View>
-              <TouchableOpacity onPress={handleLogout}>
-                <MaterialIcons name="logout" size={30} color={Colors.PRIMARY} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Orders Section */}
-          <View style={styles.ordersContainer}>
-            <Text style={styles.sectionTitle}>My Orders</Text>
-            <View style={styles.tabs}>
-              {['View Profile'].map((tab) => (
-                <TouchableOpacity
-                  key={tab}
-                  style={[styles.tab, activeTab === tab && styles.activeTab]}
-                  onPress={() => setActiveTab(tab)}>
-                  <Text style={styles.tabText}>{tab}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {error ? (
-              <Text style={styles.errorText}>{""}</Text> // Show error if it occurs
-            ) : (
-              <View style={styles.orderList}>
-                {orders.length > 0 ? (
-                  orders.map((order, index) => (
-                    <Text key={index}>{order}</Text>
-                  ))
-                ) : (
-                  <Text>No orders available</Text>
-                )}
-              </View>
-            )}
-          </View>
-        </>
+              {/* <View style={styles.ordersContainer}>
+                <Text style={styles.sectionTitle}>My Orders</Text>
+                <View style={styles.tabs}>
+                  {tabs.map((tab) => (
+                    <Pressable
+                      key={tab}
+                      style={[styles.tab, activeTab === tab && styles.activeTab]}
+                      onPress={() => setActiveTab(tab)}
+                      accessibilityLabel={`View ${tab} orders`}
+                    >
+                      <Text style={styles.tabText}>{tab}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {error && <Text style={styles.errorText}>{error}</Text>}
+              </View> */}
+            </>
+          }
+          data={orders}
+          renderItem={renderOrder}
+          keyExtractor={(item) => item.id}
+          ListEmptyComponent={<Text style={styles.emptyText}></Text>}
+          contentContainerStyle={styles.listContainer}
+          initialNumToRender={5}
+          maxToRenderPerBatch={10}
+          removeClippedSubviews
+        />
       )}
-    </ScrollView>
+    </SafeAreaView>
   );
-};
+});
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  ordersContainer: { padding: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 8 },
-  tabs: { flexDirection: 'row', marginBottom: 8 },
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  listContainer: {
+    paddingBottom: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    fontSize: width >= 768 ? 18 : 14,
+    color: "#333",
+    marginTop: 10,
+  },
+  profileSection: {
+    margin: width >= 768 ? 20 : 16,
+  },
+  profileInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  profileImage: {
+    marginRight: width >= 768 ? 20 : 16,
+  },
+  profileDetails: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: width >= 768 ? 20 : 16,
+    fontWeight: "bold",
+  },
+  profileEmail: {
+    fontSize: width >= 768 ? 16 : 14,
+    color: "#888",
+  },
+  ordersContainer: {
+    padding: width >= 768 ? 20 : 16,
+  },
+  sectionTitle: {
+    fontSize: width >= 768 ? 22 : 18,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  tabs: {
+    flexDirection: "row",
+    marginBottom: 8,
+  },
   tab: {
     flex: 1,
-    padding: 8,
-    alignItems: 'center',
+    padding: width >= 768 ? 12 : 8,
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
+    marginHorizontal: 4,
   },
-  activeTab: { backgroundColor: '#f8a5c2' },
-  tabText: { fontSize: 14 },
-  orderList: { marginTop: 8 },
-  profileSection: { margin: 16 },
-  profileInfo: { flexDirection: 'row', alignItems: 'center' },
-  profileImage: { width: 50, height: 50, borderRadius: 25, marginRight: 16 },
-  profileDetails: { flex: 1 },
-  profileName: { fontSize: 16, fontWeight: 'bold' },
-  profileEmail: { fontSize: 14, color: '#888' },
-  guestButton: {
-    backgroundColor: '#F5038F',
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: 'center',
+  activeTab: {
+    backgroundColor: "#f8a5c2",
   },
-  guestButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  tabText: {
+    fontSize: width >= 768 ? 16 : 14,
   },
-  loadingIndicator: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
-  errorText: { color: 'red', textAlign: 'center', marginTop: 20 },
+  orderItem: {
+    padding: width >= 768 ? 15 : 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  orderText: {
+    fontSize: width >= 768 ? 16 : 14,
+    color: "#333",
+  },
+  emptyText: {
+    fontSize: width >= 768 ? 16 : 14,
+    color: "#666",
+    textAlign: "center",
+    padding: 20,
+  },
+  errorText: {
+    fontSize: width >= 768 ? 16 : 14,
+    color: "red",
+    textAlign: "center",
+    marginVertical: 10,
+  },
 });
 
 export default Account;
-
-

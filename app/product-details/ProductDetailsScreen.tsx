@@ -60,7 +60,7 @@ const ProductDetailsScreen = () => {
   const handleAddToCart = async (_id: any, name: string, price: string) => {
     try {
       await addToCart(_id, quantity, name, price).then(() => {
-        ToastAndroid.show("Product added to cart.", 2000);
+        ToastAndroid.show("Product added to cart.", ToastAndroid.SHORT);
       });
     } catch (error) {
       console.error("Error adding product to cart:", error);

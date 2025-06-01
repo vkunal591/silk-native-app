@@ -7,7 +7,10 @@ import {
   StyleSheet,
   ImageBackground,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native';
+
+const {width, height} = Dimensions.get("screen")
 
 export default function Index() {
   const router = useRouter();
@@ -47,7 +50,7 @@ export default function Index() {
       <ImageBackground
         source={require('../assets/images/start.jpeg')}
         style={styles.backgroundImage}
-        resizeMode="contain" // Ensure the image fits within the screen
+        resizeMode="stretch" // Ensure the image fits within the screen
       >
         {/* Start Button at the Bottom */}
         <TouchableOpacity
@@ -73,14 +76,14 @@ const styles = StyleSheet.create({
   },
   startButton: {
     width: '40%',
-    backgroundColor: 'transparent',
+    backgroundColor: 'white',
     borderWidth: 2,
     borderColor: '#7F0045',
     paddingVertical: 10,
     paddingHorizontal: 25,
     borderRadius: 35,
     position: 'absolute',
-    bottom: 20,
+    bottom: height*0.15,
   },
   startButtonText: {
     color: '#7F0045',

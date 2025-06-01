@@ -8,6 +8,8 @@ import {
   ActivityIndicator,
   FlatList,
   TouchableOpacity,
+  Dimensions,
+  SafeAreaView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import BannerSlider from "@/components/Banners";
@@ -21,6 +23,71 @@ import {
   fetchCategory,
   fetchProducts,
 } from "@/services/api";
+import { Colors } from "@/contants/Colors";
+
+// Get window dimensions for responsiveness
+const { width, height } = Dimensions.get("window");
+
+// Calculate number of columns based on screen width
+const getNumColumns = (screenWidth: number) => {
+  if (screenWidth >= 1024) return 4; // Large tablets
+  if (screenWidth >= 768) return 3; // Small tablets
+  if (screenWidth >= 400) return 2; // Standard phones
+  return 1; // Small devices or flip phones
+};
+
+// Skeleton Loader Component
+const SkeletonLoader = ({ numColumns }: { numColumns: number }) => {
+  return (
+    <View style={styles.skeletonContainer}>
+      {/* Skeleton for Banner */}
+      <View style={[styles.skeletonBanner, { height: width >= 768 ? 300 : 150 }]} />
+
+      {/* Skeleton for Categories */}
+      <View style={styles.skeletonCategoryContainer}>
+        {Array(4)
+          .fill(0)
+          .map((_, index) => (
+            <View key={`category-${index}`} style={styles.skeletonCategory} />
+          ))}
+      </View>
+
+      {/* Skeleton for Section Header */}
+      <View style={styles.sectionHeader}>
+        <View style={styles.skeletonSectionTitle} />
+        <View style={styles.skeletonSeeAll} />
+      </View>
+
+      {/* Skeleton for Horizontal Product List */}
+      <FlatList
+        data={Array(5).fill(0)}
+        renderItem={() => (
+          <View style={[styles.skeletonProductCard, { width: width / numColumns - 20 }]} />
+        )}
+        keyExtractor={(_, index) => `skeleton-horizontal-${index}`}
+        horizontal
+        contentContainerStyle={styles.horizontalList}
+      />
+
+      {/* Skeleton for Product Grid */}
+      <View style={styles.skeletonGridContainer}>
+        <View style={styles.sectionHeader}>
+          <View style={styles.skeletonSectionTitle} />
+        </View>
+        <View style={styles.skeletonGrid}>
+          {Array(numColumns * 2)
+            .fill(0)
+            .map((_, index) => (
+              <View
+                key={`grid-${index}`}
+                style={[styles.skeletonProductCard, { width: width / numColumns - 20 }]}
+              />
+            ))}
+        </View>
+      </View>
+    </View>
+  );
+};
 
 const Shop = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -30,7 +97,19 @@ const Shop = () => {
   const [searchInput, setSearchInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [numColumns, setNumColumns] = useState(getNumColumns(width));
   const router = useRouter();
+
+  // Update number of columns on dimension change
+  useEffect(() => {
+    const updateLayout = () => {
+      const newWidth = Dimensions.get("window").width;
+      setNumColumns(getNumColumns(newWidth));
+    };
+
+    const subscription = Dimensions.addEventListener("change", updateLayout);
+    return () => subscription?.remove();
+  }, []);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -77,99 +156,188 @@ const Shop = () => {
     async (id: string, name: string, price: string) => {
       try {
         await addToCart(id, 1, name, price);
-        ToastAndroid.show("Product added to cart", 2000);
-        // router.push("/(tabs)/cart");
+        ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
       } catch (error) {
         console.error("Error adding product to cart:", error);
         setError("Could not add product to cart. Please try again.");
       }
     },
-    [router]
+    []
   );
 
   const renderProductCard = useCallback(
     ({ item }: any) => (
-      <ProductCard
-        key={item._id}
-        product={item}
-        onViewDetails={handleViewDetails}
-        onAddToCart={handleAddToCart}
-      />
+      <View>
+        <ProductCard
+          key={item._id}
+          product={item}
+          onViewDetails={handleViewDetails}
+          onAddToCart={handleAddToCart}
+        />
+      </View>
     ),
-    [handleViewDetails, handleAddToCart]
+    [handleViewDetails, handleAddToCart, numColumns]
   );
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={products}
-        renderItem={renderProductCard}
-        keyExtractor={(item: any, index: any) => index}
-        numColumns={2}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        windowSize={10}
-        initialNumToRender={8}
-        maxToRenderPerBatch={10}
-        removeClippedSubviews
-        getItemLayout={(data, index) => ({
-          length: 150,
-          offset: 150 * index,
-          index,
-        })}
-        ListHeaderComponent={
-          <>
-            <Header
-              Title="shop"
-              searchInput={searchInput}
-              setSearchInput={setSearchInput}
-              onSearchClick={() =>
-                router.push({
-                  pathname: "/Shop/ShopScreen",
-                  params: { search: searchInput },
-                })
-              }
+    <SafeAreaView style={styles.safeContainer}>
+      {isLoading ? (
+        <SkeletonLoader numColumns={numColumns} />
+      ) : (
+        <FlatList
+          data={[]}
+          renderItem={renderProductCard}
+          keyExtractor={(item: any, index: any) => `${item._id}-${index}`}
+          numColumns={numColumns}
+          key={numColumns} // Force re-render when numColumns changes
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          windowSize={10}
+          initialNumToRender={8}
+          maxToRenderPerBatch={10}
+          removeClippedSubviews
+          getItemLayout={(data, index) => ({
+            length: width / numColumns,
+            offset: (width / numColumns) * index,
+            index,
+          })}
+          contentContainerStyle={styles.contentContainer}
+          ListHeaderComponent={
+            <>
+              <Header
+                Title="shop"
+                searchInput={searchInput}
+                setSearchInput={setSearchInput}
+                onSearchClick={() =>
+                  router.push({
+                    pathname: "/Shop/ShopScreen",
+                    params: { search: searchInput },
+                  })
+                }
+              />
+              {banners.length > 0 && (
+                <BannerSlider
+                  data={banners}
+                  style={{ height: width >= 768 ? 300 : 150 }}
+                />
+              )}
+              {category.length > 0 && <TopCategories category={category} />}
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>New Items</Text>
+                <TouchableOpacity
+                  onPress={() => router.push({ pathname: "/Shop/ShopScreen" })}
+                >
+                  <Text style={styles.seeAllText}>See All</Text>
+                </TouchableOpacity>
+              </View>
+              {error && <Text style={styles.errorText}>{error}</Text>}
+              <FlatList
+                data={products}
+                renderItem={renderProductCard}
+                keyExtractor={(item: any) => `horizontal-${item._id}`}
+                horizontal
+                contentContainerStyle={styles.horizontalList}
+                initialNumToRender={5}
+              />
+            </>
+          }
+          ListFooterComponent={
+            <ProductGrid
+              title="Just For You"
+              itemData={products}
+              onViewDetails={handleViewDetails}
+              onAddToCart={handleAddToCart}
+              numColumns={numColumns}
             />
-            {/* {banners.length > 0 && <BannerSlider data={banners} />} */}
-            {category.length > 0 && <TopCategories category={category} />}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 5 }} >
-              <Text style={styles.sectionTitle}>New Items</Text> <TouchableOpacity
-                onPress={() => router.push({ pathname: '/Shop/ShopScreen' })}
-              ><Text>See All</Text></TouchableOpacity>
-            </View>
-            {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
-            {error && <Text style={styles.errorText}>{error}</Text>}
-
-            {/* New Items - Horizontal Scroll */}
-            <FlatList
-              data={products}
-              renderItem={renderProductCard}
-              keyExtractor={(item: any) => item._id.toString()}
-              horizontal
-              contentContainerStyle={styles.horizontalList}
-              initialNumToRender={5}
-            />
-          </>
-        }
-        ListFooterComponent={
-          <ProductGrid
-            title="Just For You"
-            itemData={products}
-            onViewDetails={handleViewDetails}
-            onAddToCart={handleAddToCart}
-          />
-        }
-      />
-    </View>
+          }
+        />
+      )}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#f2f2f2", padding: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: "bold", marginVertical: 10 },
-  errorText: { color: "blue", textAlign: "center", marginVertical: 10 },
-  horizontalList: { paddingLeft: 0, paddingBottom: 10 },
+  safeContainer: {
+    flex: 1,
+    backgroundColor: "#f2f2f2",
+  },
+  contentContainer: {
+    paddingHorizontal: 10,
+    paddingBottom: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    marginVertical: 10,
+  },
+  sectionTitle: {
+    fontSize: width >= 768 ? 24 : 18,
+    fontWeight: "bold",
+  },
+  seeAllText: {
+    fontSize: width >= 768 ? 18 : 14,
+    color: Colors.PRIMARY,
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginVertical: 10,
+    fontSize: width >= 768 ? 18 : 14,
+  },
+  horizontalList: {
+    paddingVertical: 10,
+  },
+  // Skeleton Styles
+  skeletonContainer: {
+    flex: 1,
+    paddingHorizontal: 10,
+  },
+  skeletonBanner: {
+    backgroundColor: "#e0e0e0",
+    borderRadius: 10,
+    marginVertical: 10,
+    width: "100%",
+  },
+  skeletonCategoryContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginVertical: 10,
+  },
+  skeletonCategory: {
+    backgroundColor: "#e0e0e0",
+    borderRadius: 8,
+    width: width / 5,
+    height: width / 5,
+  },
+  skeletonSectionTitle: {
+    backgroundColor: "#e0e0e0",
+    borderRadius: 4,
+    width: "40%",
+    height: 20,
+  },
+  skeletonSeeAll: {
+    backgroundColor: "#e0e0e0",
+    borderRadius: 4,
+    width: "20%",
+    height: 16,
+  },
+  skeletonProductCard: {
+    backgroundColor: "#e0e0e0",
+    borderRadius: 8,
+    height: 200,
+    margin: 10,
+  },
+  skeletonGridContainer: {
+    marginTop: 20,
+  },
+  skeletonGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
 });
 
 export default Shop;
