@@ -173,12 +173,12 @@ export const fetchCart = async (filter: any) => {
     if (!authToken) {
       throw new Error('Authentication token is missing.');
     }
-    if(!filter) {
+    if (!filter) {
       const response = await api.get(`/api/cart`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
       return response.data;
-    }else {
+    } else {
       const response = await api.get(`/api/cart${filter}`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
@@ -229,7 +229,7 @@ export const fetchClearCartItem = async () => {
 };
 
 // Update User Address
-export const fetchUpdateAddress = async (address: { street: string; city: string; state: string; zipCode: string; }) => {
+export const fetchUpdateAddress = async (address: any) => {
   try {
     const authToken = await AsyncStorage.getItem('accessToken');
     const cachedProfile = await AsyncStorage.getItem('userData');

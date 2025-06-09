@@ -8,9 +8,9 @@ import {
   ImageBackground,
   TouchableOpacity,
   Dimensions,
-} from 'react-native';
+} from "react-native";
 
-const {width, height} = Dimensions.get("screen")
+const { width, height } = Dimensions.get("screen");
 
 export default function Index() {
   const router = useRouter();
@@ -37,8 +37,8 @@ export default function Index() {
 
   const setFirstTimeVisitor = async () => {
     try {
-      await AsyncStorage.setItem('isFirstTime', 'true'); // Mark as visited
-      router.push('/auth/signin'); // Navigate after setting the flag
+      await AsyncStorage.setItem("isFirstTime", "true"); // Mark as visited
+      router.push("/auth/signin"); // Navigate after setting the flag
     } catch (error) {
       console.error("Error setting first time visitor:", error);
     }
@@ -48,7 +48,7 @@ export default function Index() {
     <View style={styles.container}>
       {/* Background Image */}
       <ImageBackground
-        source={require('../assets/images/start.jpeg')}
+        source={require("../assets/images/start.jpeg")}
         style={styles.backgroundImage}
         resizeMode="stretch" // Ensure the image fits within the screen
       >
@@ -70,25 +70,26 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    resizeMode:'cover'
+    justifyContent: "center",
+    alignItems: "center",
+    resizeMode: "cover",
   },
   startButton: {
-    width: '40%',
-    backgroundColor: 'white',
+    width: "40%",
+    backgroundColor: "white",
     borderWidth: 2,
-    borderColor: '#7F0045',
+    borderColor: "#7F0045",
     paddingVertical: 10,
     paddingHorizontal: 25,
     borderRadius: 35,
-    position: 'absolute',
-    bottom: height*0.15,
+    position: "absolute",
+    bottom: height * 0.15,
   },
   startButtonText: {
-    color: '#7F0045',
+    color: "#7F0045",
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontFamily: "ralewayBold", // Ensure font is loaded in your project
+    textAlign: "center",
   },
 });

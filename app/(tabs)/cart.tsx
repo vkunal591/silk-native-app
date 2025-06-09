@@ -22,7 +22,7 @@ import {
   fetchCart,
   fetchCartItemRemove,
   fetchClearCartItem,
-  fetchCurrentUser,
+  
   fetchPlaceOrder,
   fetchUpdateAddress,
 } from "../../services/api";
@@ -72,7 +72,7 @@ const Cart = memo(() => {
 
   const getUserData = useCallback(async () => {
     try {
-      const cachedProfile = await fetchCurrentUser();
+      const cachedProfile:any = await fetchCurrentUser();
       if (cachedProfile?.status) {
         setAddress(cachedProfile?.details?.user?.address || {});
       }
@@ -639,3 +639,7 @@ const styles = StyleSheet.create({
 });
 
 export default Cart;
+function fetchCurrentUser() {
+  throw new Error("Function not implemented.");
+}
+

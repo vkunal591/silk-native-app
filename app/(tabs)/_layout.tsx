@@ -85,6 +85,7 @@ export default function TabLayout() {
                 tabBarInactiveTintColor: 'gray',
                 tabBarStyle: { backgroundColor: Colors?.SHADE_WHITE },
             }} />
+            
         </Tabs>
     );
 }

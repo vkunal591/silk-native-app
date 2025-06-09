@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Dimensions,
   SafeAreaView,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import BannerSlider from "@/components/Banners";
@@ -41,7 +42,9 @@ const SkeletonLoader = ({ numColumns }: { numColumns: number }) => {
   return (
     <View style={styles.skeletonContainer}>
       {/* Skeleton for Banner */}
-      <View style={[styles.skeletonBanner, { height: width >= 768 ? 300 : 150 }]} />
+      <View
+        style={[styles.skeletonBanner, { height: width >= 768 ? 300 : 150 }]}
+      />
 
       {/* Skeleton for Categories */}
       <View style={styles.skeletonCategoryContainer}>
@@ -62,7 +65,12 @@ const SkeletonLoader = ({ numColumns }: { numColumns: number }) => {
       <FlatList
         data={Array(5).fill(0)}
         renderItem={() => (
-          <View style={[styles.skeletonProductCard, { width: width / numColumns - 20 }]} />
+          <View
+            style={[
+              styles.skeletonProductCard,
+              { width: width / numColumns - 20 },
+            ]}
+          />
         )}
         keyExtractor={(_, index) => `skeleton-horizontal-${index}`}
         horizontal
@@ -80,7 +88,10 @@ const SkeletonLoader = ({ numColumns }: { numColumns: number }) => {
             .map((_, index) => (
               <View
                 key={`grid-${index}`}
-                style={[styles.skeletonProductCard, { width: width / numColumns - 20 }]}
+                style={[
+                  styles.skeletonProductCard,
+                  { width: width / numColumns - 20 },
+                ]}
               />
             ))}
         </View>
@@ -180,80 +191,57 @@ const Shop = () => {
   );
 
   return (
-    <SafeAreaView style={styles.safeContainer}>
+    <ScrollView style={styles.safeContainer}>
       {isLoading ? (
         <SkeletonLoader numColumns={numColumns} />
       ) : (
-        <FlatList
-          data={[]}
-          renderItem={renderProductCard}
-          keyExtractor={(item: any, index: any) => `${item._id}-${index}`}
-          numColumns={numColumns}
-          key={numColumns} // Force re-render when numColumns changes
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          windowSize={10}
-          initialNumToRender={8}
-          maxToRenderPerBatch={10}
-          removeClippedSubviews
-          getItemLayout={(data, index) => ({
-            length: width / numColumns,
-            offset: (width / numColumns) * index,
-            index,
-          })}
-          contentContainerStyle={styles.contentContainer}
-          ListHeaderComponent={
-            <>
-              <Header
-                Title="shop"
-                searchInput={searchInput}
-                setSearchInput={setSearchInput}
-                onSearchClick={() =>
-                  router.push({
-                    pathname: "/Shop/ShopScreen",
-                    params: { search: searchInput },
-                  })
-                }
-              />
-              {banners.length > 0 && (
-                <BannerSlider
-                  data={banners}
-                  style={{ height: width >= 768 ? 300 : 150 }}
-                />
-              )}
-              {category.length > 0 && <TopCategories category={category} />}
-              <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>New Items</Text>
-                <TouchableOpacity
-                  onPress={() => router.push({ pathname: "/Shop/ShopScreen" })}
-                >
-                  <Text style={styles.seeAllText}>See All</Text>
-                </TouchableOpacity>
-              </View>
-              {error && <Text style={styles.errorText}>{error}</Text>}
-              <FlatList
-                data={products}
-                renderItem={renderProductCard}
-                keyExtractor={(item: any) => `horizontal-${item._id}`}
-                horizontal
-                contentContainerStyle={styles.horizontalList}
-                initialNumToRender={5}
-              />
-            </>
-          }
-          ListFooterComponent={
-            <ProductGrid
-              title="Just For You"
-              itemData={products}
-              onViewDetails={handleViewDetails}
-              onAddToCart={handleAddToCart}
-              numColumns={numColumns}
+        <>
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <Header
+            Title="shop"
+            searchInput={searchInput}
+            setSearchInput={setSearchInput}
+            onSearchClick={() =>
+              router.push({
+                pathname: "/Shop/ShopScreen",
+                params: { search: searchInput },
+              })
+            }
+          />
+          {banners.length > 0 && (
+            <BannerSlider
+              data={banners}
+              style={{ height: width >= 768 ? 300 : 150 }}
             />
-          }
-        />
+          )}
+          {category.length > 0 && <TopCategories category={category} />}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>New Items</Text>
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: "/Shop/ShopScreen" })}
+            >
+              <Text style={styles.seeAllText}>See All</Text>
+            </TouchableOpacity>
+          </View>
+          {error && <Text style={styles.errorText}>{error}</Text>}
+          <FlatList
+            data={products}
+            renderItem={renderProductCard}
+            keyExtractor={(item: any) => `horizontal-${item._id}`}
+            horizontal
+            contentContainerStyle={styles.horizontalList}
+            initialNumToRender={5}
+          />
+          <ProductGrid
+            title="Just For You"
+            itemData={products}
+            onViewDetails={handleViewDetails}
+            onAddToCart={handleAddToCart}
+            numColumns={numColumns}
+          />
+        </>
       )}
-    </SafeAreaView>
+    </ScrollView>
   );
 };
 
