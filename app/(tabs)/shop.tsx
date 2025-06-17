@@ -65,10 +65,10 @@ const Shop = () => {
   const handleViewDetails = useCallback(
     (product: any) => {
       router.push({
-        pathname: "/product-details/ProductDetailsScreen",
+        pathname: "/(tabs)/explore/ProductDetailsScreen",
         params: { product: JSON.stringify(product) },
       });
-      ToastAndroid.show(`View Product ${product?.name}`, 2000);
+      // ToastAndroid.show(`View Product ${product?.name}`, ToastAndroid.SHORT);
     },
     [router]
   );
@@ -77,7 +77,7 @@ const Shop = () => {
     async (id: string, name: string, price: string) => {
       try {
         await addToCart(id, 1, name, price);
-        ToastAndroid.show("Product added to cart", 2000);
+        ToastAndroid.show("Product added to cart", 500);
         // router.push("/(tabs)/cart");
       } catch (error) {
         console.error("Error adding product to cart:", error);

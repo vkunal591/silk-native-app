@@ -1,9 +1,11 @@
 
 import React, { memo } from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet, Pressable, Dimensions } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { API_BASE_URL } from '../services/api';
 import { Colors } from '@/contants/Colors';
+
+const { width, height } = Dimensions.get("screen")
 
 const ProductCard = memo(({ product, onViewDetails, onAddToCart }: any) => {
     // Handle image load error
@@ -29,14 +31,14 @@ const ProductCard = memo(({ product, onViewDetails, onAddToCart }: any) => {
                     <View style={styles.subInfoContainer}>
                         <Text style={styles.price}>₹{product?.price || 'N/A'}</Text>
                         <View style={styles.ratingContainer}>
-                            <Pressable 
-                                style={styles.rating} 
-                                onPress={() => onAddToCart(product?._id,product?.name,product?.price)}
+                            <Pressable
+                                style={styles.rating}
+                                onPress={() => onAddToCart(product?._id, product?.name, product?.price)}
                             >
-                                <MaterialCommunityIcons 
-                                    name="cart-plus" 
-                                    size={30} 
-                                    color={Colors.PRIMARY} 
+                                <MaterialCommunityIcons
+                                    name="cart-plus"
+                                    size={30}
+                                    color={Colors.PRIMARY}
                                 />
                             </Pressable>
                         </View>
@@ -60,7 +62,7 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 4,
         alignItems: 'center',
-        width: 170,
+        width: width * 0.45,
 
     },
     image: {

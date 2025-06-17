@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -12,12 +12,12 @@ import {
     ToastAndroid,
     Image,
     ActivityIndicator,
+    Pressable,
 } from 'react-native';
 import {
     API_BASE_URL,
     fetchCart,
     fetchCartItemRemove,
-    fetchClearCartItem,
     fetchCurrentUser,
     fetchPlaceOrder,
     fetchUpdateAddress,
@@ -28,13 +28,34 @@ import { Entypo, Feather, Ionicons, Octicons } from '@expo/vector-icons';
 import { Colors } from '@/contants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const img = require('../../assets/images/silk.png');
+const defaultImage = require('../../assets/images/silk.png');
 
-const Cart = () => {
-    const [cartItems, setCartItems] = useState<any>([]);
+interface CartItem {
+    _id: string;
+    items: Array<{
+        product: {
+            _id: string;
+            name: string;
+            price: number;
+            images?: string;
+        };
+        quantity: number;
+    }>;
+}
+
+interface Address {
+    streetAddress: string;
+    city: string;
+    state: string;
+    country: string;
+    pincode: string;
+}
+
+const Cart: React.FC = () => {
+    const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [totalPrice, setTotalPrice] = useState(0);
-    const [address, setAddress] = useState<any>({
+    const [address, setAddress] = useState<Address>({
         streetAddress: "",
         city: "",
         state: "",
@@ -43,24 +64,70 @@ const Cart = () => {
     });
     const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
     const [page, setPage] = useState(1);
-    const [limit] = useState(10); // Number of items per page
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [limit] = useState(10);
+    const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
+    const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const router = useRouter();
+    const isFetching = useRef(false);
+    const hasFetchedOnce = useRef(false);
 
-    const getUserData = async () => {
-        const cachedProfile: any = await fetchCurrentUser();
-        if (cachedProfile?.status) {
-            setAddress(cachedProfile?.details?.user?.address);
+    const fetchUserData = useCallback(async () => {
+        try {
+            const cachedProfile = await fetchCurrentUser();
+            if (cachedProfile?.status && cachedProfile?.details?.user?.address) {
+                setAddress(cachedProfile.details.user.address);
+            }
+        } catch (error) {
+            ToastAndroid.show('Failed to load user data', ToastAndroid.SHORT);
         }
-    };
+    }, []);
 
-    const handleAddressChange = (field: string, value: string) => {
-        setAddress((prevAddress: any) => ({ ...prevAddress, [field]: value }));
-    };
+    const fetchCartData = useCallback(async (pageNum: number, reset = false) => {
+        if (isFetching.current || (isLoading && !reset)) return;
+        isFetching.current = true;
+        setIsLoading(true);
 
-    const handleSubmitAddress = async () => {
-        if (!address.streetAddress || !address.country || !address.city || !address.state || !address.pincode) {
+        try {
+            const response = await fetchCart(`page=${pageNum}&limit=${limit}`);
+            const data = response.data?.result || [];
+
+            setCartItems(prev => reset ? data : [...prev, ...data]);
+            setHasMore(data.length === limit);
+
+            if (data.length === 0 && reset) {
+                ToastAndroid.show('Your cart is empty', ToastAndroid.SHORT);
+            }
+        } catch (error) {
+            ToastAndroid.show('Failed to load cart items', ToastAndroid.SHORT);
+        } finally {
+            setIsLoading(false);
+            isFetching.current = false;
+        }
+    }, [limit]);
+
+    const calculateTotalPrice = useCallback(() => {
+        const total = cartItems
+            .filter(item => selectedItems.includes(item.items[0]?.product?._id))
+            .reduce((sum, item) => sum + (item.items[0]?.product?.price * item.items[0]?.quantity), 0);
+        setTotalPrice(total);
+    }, [cartItems, selectedItems]);
+
+    const toggleSelectItem = useCallback((productId: string) => {
+        setSelectedItems(prev =>
+            prev.includes(productId)
+                ? prev.filter(id => id !== productId)
+                : [...prev, productId]
+        );
+    }, []);
+
+    const handleAddressChange = useCallback((field: keyof Address, value: string) => {
+        setAddress(prev => ({ ...prev, [field]: value }));
+    }, []);
+
+    const handleSubmitAddress = useCallback(async () => {
+        const { streetAddress, city, state, country, pincode } = address;
+        if (!streetAddress || !city || !state || !country || !pincode) {
             Alert.alert('Error', 'Please fill in all address fields.');
             return;
         }
@@ -69,131 +136,113 @@ const Cart = () => {
             const response = await fetchUpdateAddress(address);
             if (response.success) {
                 setIsAddressModalVisible(false);
-                Alert.alert('Address', 'Address submitted successfully');
+                ToastAndroid.show('Address updated successfully', ToastAndroid.SHORT);
             }
         } catch (error) {
-            console.error('Error updating address:', error);
             Alert.alert('Error', 'Failed to update address. Please try again.');
         }
-    };
+    }, [address]);
 
-    const calculateTotalPrice = () => {
-        const items = extractItemsArray(cartItems);
-        const total = items.reduce((sum: any, item: any) => sum + item?.product?.price * item?.quantity, 0);
-        setTotalPrice(total);
-    };
-
-    const fetchCartDetails = async (pageNum: number, reset = false) => {
-        if (isLoadingMore && !reset) return;
-        setIsLoadingMore(true);
+    const handleRemoveItem = useCallback(async (id: string) => {
         try {
-            const response = await fetchCart(`page=${pageNum}&limit=${limit}`);
-            const data = response.data.result || [];
-            if (reset) {
-                setCartItems(data);
-            } else {
-                setCartItems((prevItems: any) => [...prevItems, ...data]);
-            }
-            setHasMore(data.length === limit); // If less than limit, no more items
-            if (data.length === 0 && reset) {
-                ToastAndroid.show('No item in cart', 2000);
-            } 
-
-            if (data.length !== 0) {
-                ToastAndroid.show('Cart items loaded', 2000);
-            }
-        } catch (error) {
-            console.error('Error fetching cart details:', error);
-            ToastAndroid.show('Failed to load cart items', 2000);
-        } finally {
-            setIsLoadingMore(false);
-        }
-    };
-
-    const handleRemoveItem = async (id: any) => {
-        try {
-            const response: any = await fetchCartItemRemove(id);
+            const response = await fetchCartItemRemove(id);
             if (response.success) {
-                ToastAndroid.show("Item removed successfully", 1000);
-                setCartItems((prevItems: any) => prevItems.filter((item: any) => item?._id !== id));
+                setCartItems(prev => prev.filter(item => item._id !== id));
+                setSelectedItems(prev => prev.filter(itemId => itemId !== id));
+                ToastAndroid.show('Item removed', ToastAndroid.SHORT);
             }
         } catch (error) {
-            console.error('Error removing cart item:', error);
+            // ToastAndroid.show('Error removing item', ToastAndroid.SHORT);
         }
-    };
+    }, []);
 
-    const handleQuantityChange = (id: any, type: string) => {
-        setCartItems((prevItems: any) =>
-            prevItems.map((item: any) =>
-                item?.product === id
-                    ? {
-                          ...item,
-                          quantity: type === 'increment' ? item.quantity + 1 : Math.max(item?.quantity - 1, 1),
-                      }
-                    : item
-            )
-        );
-    };
+    const handleQuantityChange = useCallback((productId: string, type: 'increment' | 'decrement') => {
+        setCartItems(prev => prev.map(item => {
+            if (item.items[0]?.product?._id !== productId) return item;
+            return {
+                ...item,
+                items: [{
+                    ...item.items[0],
+                    quantity: type === 'increment'
+                        ? item.items[0].quantity + 1
+                        : Math.max(item.items[0].quantity - 1, 1)
+                }]
+            };
+        }));
+    }, []);
 
-    const onRefresh = async () => {
+    const handlePlaceOrder = useCallback(async () => {
+        if (selectedItems.length === 0) {
+            ToastAndroid.show('Please select at least one item', ToastAndroid.SHORT);
+            return;
+        }
+
+        const selected = cartItems
+            .filter(item => selectedItems.includes(item.items[0]?.product?._id))
+            .map(item => item.items[0]);
+
+        try {
+            const response = await fetchPlaceOrder(selected, totalPrice);
+            if (response.success) {
+                // Remove ordered items
+                const removedItemIds = cartItems
+                    .filter(item => selectedItems.includes(item.items[0]?.product?._id))
+                    .map(item => item._id);
+
+                await Promise.all(removedItemIds.map(id => fetchCartItemRemove(id)));
+
+                setCartItems(prev => prev.filter(item => !selectedItems.includes(item.items[0]?.product?._id)));
+                setSelectedItems([]);
+                ToastAndroid.show('Order placed successfully!', ToastAndroid.SHORT);
+                router.push('/(tabs)/shop');
+            } else {
+                ToastAndroid.show('Failed to place order', ToastAndroid.SHORT);
+            }
+        } catch (error) {
+            ToastAndroid.show('Error placing order. Please try again', ToastAndroid.SHORT);
+        }
+    }, [cartItems, selectedItems, totalPrice, router]);
+
+    const handleViewDetails = useCallback((product: CartItem) => {
+        router.push({
+            pathname: '/(tabs)/explore/ProductDetailsScreen',
+            params: { product: JSON.stringify(product.items[0]?.product) }
+        });
+    }, [router]);
+
+    const onRefresh = useCallback(async () => {
         setRefreshing(true);
         setPage(1);
-        await fetchCartDetails(1, true);
-        await calculateTotalPrice();
+        await fetchCartData(1, true);
+        setSelectedItems([]);
         setRefreshing(false);
-    };
+    }, [fetchCartData]);
 
-    const loadMoreItems = () => {
-        if (hasMore && !isLoadingMore) {
-            setPage((prevPage) => prevPage + 1);
+    const loadMoreItems = useCallback(() => {
+        if (hasMore && !isLoading) {
+            setPage(prev => prev + 1);
         }
-    };
+    }, [hasMore, isLoading]);
 
     useEffect(() => {
         if (page > 1) {
-            fetchCartDetails(page);
+            fetchCartData(page);
         }
-    }, [page]);
+    }, [page, fetchCartData]);
 
     useFocusEffect(
         useCallback(() => {
-            setPage(1);
-            fetchCartDetails(1, true);
-            getUserData();
-        }, [])
-    );
-
-    useFocusEffect(
-        useCallback(() => {
-            calculateTotalPrice();
-        }, [cartItems])
-    );
-
-    const extractItemsArray = (carts: any) => {
-        return carts.map((cart: any) => cart.items[0]);
-    };
-
-    const totalAmountCalcutalte = (cart: any) => {
-        return cart?.reduce((sum: any, item: any) => sum + (item.price * item?.quantity), 0);
-    };
-
-    const handlePlaceOrder = async () => {
-        const cart = extractItemsArray(cartItems);
-        const items = extractItemsArray(cartItems);
-        const totalAmount = totalAmountCalcutalte(cart);
-        try {
-            const res: any = await fetchPlaceOrder(items, totalAmount);
-            if (res.success) {
-                await fetchClearCartItem();
-                ToastAndroid.show('Your order has been placed successfully!', 2000);
-                router.push('/(tabs)/shop');
-            } else {
-                ToastAndroid.show('Add to cart, Plz try again!', 2000);
+            if (!hasFetchedOnce.current) {
+                fetchCartData(1, true);
+                fetchUserData();
+                hasFetchedOnce.current = true;
             }
-        } catch (error) {
-            ToastAndroid.show("Add to cart, Please try again", 2000);
-        }
-    };
+        }, [fetchCartData, fetchUserData])
+    );
+
+    useEffect(() => {
+        calculateTotalPrice();
+    }, [cartItems, selectedItems, calculateTotalPrice]);
 
     return (
         <View style={styles.container}>
@@ -204,57 +253,107 @@ const Cart = () => {
             <View style={styles.shippingContainer}>
                 <View style={styles.shippingSubContainer}>
                     <Text style={styles.shippingTitle}>Shipping Address</Text>
-                    <TouchableOpacity style={styles.editButton} onPress={() => setIsAddressModalVisible(true)}>
+                    <TouchableOpacity
+                        style={styles.editButton}
+                        onPress={() => setIsAddressModalVisible(true)}
+                    >
                         <Feather name="edit-3" size={20} color="#800020" />
                     </TouchableOpacity>
                 </View>
                 <Text style={styles.shippingAddress}>
-                    {address?.pincode ? `${address.streetAddress}, ${address.state}, ${address?.country} - ${address.pincode}` : 'No address added. Please add an address.'}
+                    {address.pincode
+                        ? `${address.streetAddress}, ${address.city}, ${address.state}, ${address.country} - ${address.pincode}`
+                        : 'No address added.'}
                 </Text>
             </View>
 
             <FlatList
                 data={cartItems}
-                keyExtractor={(item: any) => item?._id}
-                renderItem={({ item }) => (
-                    <View style={styles.cartItem}>
-                        <View style={styles.cartDetails}>
-                            <Image
-                                source={
-                                    item?.items[0]?.product?.images
-                                        ? {
-                                              uri: `${API_BASE_URL}${item?.items[0]?.product?.images.replace(/\\/g, "/")}`,
-                                          }
-                                        : img
-                                }
-                                style={{ width: 50, height: 50 }}
-                                resizeMode="contain"
-                            />
-                            <Text style={styles.itemTitle}>{item?.items[0].product?.name}</Text>
+                keyExtractor={item => item._id}
+                renderItem={({ item }) => {
+                    const product = item.items[0]?.product;
+                    const quantity = item.items[0]?.quantity;
+                    const productId = product?._id;
+                    const isSelected = selectedItems.includes(productId);
+
+                    return (
+                        <View style={styles.cartItem}>
+                            <TouchableOpacity
+                                onPress={() => toggleSelectItem(productId)}
+                                style={styles.checkboxContainer}
+                            >
+                                <Ionicons
+                                    name={isSelected ? "checkbox-outline" : "square-outline"}
+                                    size={24}
+                                    color={Colors.PRIMARY}
+                                />
+                            </TouchableOpacity>
+
+                            <Pressable
+                                onPress={() => handleViewDetails(item)}
+                                style={styles.cartDetails}
+                            >
+                                <Image
+                                    source={product?.images
+                                        ? { uri: `${API_BASE_URL}${product.images.replace(/\\/g, "/")}` }
+                                        : defaultImage
+                                    }
+                                    style={styles.productImage}
+                                    resizeMode="contain"
+                                />
+                                <Text style={styles.itemTitle}>{product?.name}</Text>
+                            </Pressable>
+
+                            <View style={styles.quantityContainer}>
+                                <TouchableOpacity
+                                    onPress={() => handleQuantityChange(productId, 'decrement')}
+                                >
+                                    <Entypo name="minus" size={20} color="#000" />
+                                </TouchableOpacity>
+                                <Text style={styles.itemTitle}>{quantity}</Text>
+                                <TouchableOpacity
+                                    onPress={() => handleQuantityChange(productId, 'increment')}
+                                >
+                                    <Entypo name="plus" size={20} color="#000" />
+                                </TouchableOpacity>
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={() => handleRemoveItem(item._id)}
+                                style={styles.deleteButton}
+                            >
+                                <Octicons name="trash" size={20} color="#FF0000" />
+                            </TouchableOpacity>
                         </View>
-                        <View style={{ marginRight: 20 }}>
-                            <Text style={styles.itemTitle}>{item?.items[0]?.quantity}</Text>
-                        </View>
-                        <TouchableOpacity onPress={() => handleRemoveItem(item?._id)} style={styles.deleteButton}>
-                            <Octicons name="trash" size={20} color="#FF0000" />
-                        </TouchableOpacity>
-                    </View>
-                )}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                    );
+                }}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                }
                 onEndReached={loadMoreItems}
                 onEndReachedThreshold={0.5}
-                ListFooterComponent={
-                    isLoadingMore ? (
-                        <View style={styles.loader}>
-                            <ActivityIndicator size="small" color="#800020" />
-                        </View>
-                    ) : null
+                ListFooterComponent={isLoading && (
+                    <View style={styles.loader}>
+                        <ActivityIndicator size="small" color="#800020" />
+                    </View>
+                )}
+                ListEmptyComponent={
+                    <Text style={styles.emptyText}>Your cart is empty</Text>
                 }
             />
 
             <View style={styles.footer}>
-                <TouchableOpacity style={styles.checkoutButton} onPress={handlePlaceOrder}>
-                    <Text style={styles.checkoutText}>Place Order</Text>
+                {/* <Text style={styles.totalPrice}>
+                    Total: ${totalPrice.toFixed(2)}
+                </Text> */}
+                <TouchableOpacity
+                    style={[styles.checkoutButton, !selectedItems.length && styles.disabledButton]}
+                    onPress={handlePlaceOrder}
+                    disabled={!selectedItems.length}
+                >
+                    <Text style={styles.checkoutText}>
+                        Place Order ({selectedItems.length})
+                    </Text>
                 </TouchableOpacity>
             </View>
 
@@ -267,17 +366,20 @@ const Cart = () => {
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
                         <Text style={styles.modalHeader}>Update Address</Text>
-                        {['streetAddress', 'city', 'state', 'country', 'pincode'].map((field: any, index: any) => (
+                        {(['streetAddress', 'city', 'state', 'country', 'pincode'] as (keyof Address)[]).map(field => (
                             <TextInput
-                                key={index}
-                                placeholder={`Please enter your ${field}`}
+                                key={field}
+                                placeholder={`Enter your ${field}`}
                                 value={address[field]}
-                                onChangeText={(value) => handleAddressChange(field, value)}
+                                onChangeText={value => handleAddressChange(field, value)}
                                 style={styles.input}
                             />
                         ))}
                         <View style={styles.modalActions}>
-                            <TouchableOpacity onPress={handleSubmitAddress} style={styles.submitButton}>
+                            <TouchableOpacity
+                                onPress={handleSubmitAddress}
+                                style={styles.submitButton}
+                            >
                                 <Text style={styles.buttonText}>Submit</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -294,62 +396,164 @@ const Cart = () => {
     );
 };
 
-export default Cart;
-
-const styles: any = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#FFF' },
-    header: { fontSize: 24, fontWeight: 'bold', margin: 16 },
-    cartCount: { fontSize: 18, color: '#800020' },
-    shippingContainer: { marginHorizontal: 16, marginBottom: 16 },
-    shippingSubContainer: { flexDirection: "row", width: "95%", marginHorizontal: "auto" },
-    shippingTitle: { fontWeight: 'bold', fontSize: 16 },
-    shippingAddress: { fontSize: 14, color: '#555', marginTop: 0, width: "95%", marginHorizontal: "auto" },
-    editButton: { padding: 8 },
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#FFF'
+    },
+    header: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        margin: 16
+    },
+    cartCount: {
+        fontSize: 18,
+        color: '#800020'
+    },
+    shippingContainer: {
+        marginHorizontal: 16,
+        marginBottom: 16
+    },
+    shippingSubContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center"
+    },
+    shippingTitle: {
+        fontWeight: 'bold',
+        fontSize: 16
+    },
+    shippingAddress: {
+        fontSize: 14,
+        color: '#555',
+        marginTop: 4
+    },
+    editButton: {
+        padding: 8
+    },
     cartItem: {
         flexDirection: 'row',
         alignItems: 'center',
         marginHorizontal: 16,
         marginVertical: 8,
-        paddingHorizontal: 16,
-        paddingVertical: 5,
+        padding: 12,
         borderWidth: 1,
         borderColor: '#DDD',
         borderRadius: 8,
     },
-    cartDetails: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, marginLeft: 16 },
-    itemTitle: { fontWeight: 'bold' },
-    deleteButton: { padding: 8 },
-    footer: { flexDirection: "row", justifyContent: "center", alignContent: "center", margin: 16, alignItems: 'flex-end' },
-    checkoutButton: {
-        backgroundColor: '#fff',
-        color: Colors.PRIMARY,
-        paddingVertical: 5,
-        paddingHorizontal: 32,
-        borderRadius: 8,
-        marginTop: 8,
-        borderWidth: 1,
-        borderColor: Colors.PRIMARY,
-        textAlign: "center",
-        width: "98%"
+    checkboxContainer: {
+        marginRight: 10
     },
-    checkoutText: { color: Colors.PRIMARY, fontWeight: 'bold', textAlign: "center", fontSize: 16 },
+    cartDetails: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10
+    },
+    productImage: {
+        width: 50,
+        height: 50
+    },
+    itemTitle: {
+        fontWeight: 'bold',
+        marginHorizontal: 8
+    },
+    quantityContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 5
+    },
+    deleteButton: {
+        paddingLeft: 10
+    },
+    footer: {
+        padding: 16,
+        borderTopWidth: 1,
+        borderColor: '#ddd',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+    },
+    totalPrice: {
+        fontSize: 16,
+        fontWeight: 'bold'
+    },
+    checkoutButton: {
+        backgroundColor: Colors.PRIMARY,
+        padding: 12,
+        borderRadius: 6,
+        minWidth: 120,
+        width: "95%",
+        marginHorizontal: "auto"
+    },
+    disabledButton: {
+        backgroundColor: '#ccc',
+        opacity: 0.7
+    },
+    checkoutText: {
+        color: '#fff',
+        textAlign: 'center',
+        fontWeight: 'bold'
+    },
     modalContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        backgroundColor: 'rgba(0,0,0,0.5)'
     },
     modalContent: {
-        backgroundColor: '#FFF',
+        backgroundColor: '#fff',
         padding: 24,
         borderRadius: 8,
-        width: '80%',
+        width: '85%'
     },
-    modalHeader: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
-    input: { borderWidth: 1, borderColor: '#DDD', padding: 12, marginBottom: 8, borderRadius: 4 },
-    modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
-    submitButton: { backgroundColor: '#800020', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 4 },
-    cancelButton: { backgroundColor: '#DDD', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 4 },
-    buttonText: { color: '#FFF', fontWeight: 'bold' },
-    loader: { padding: 16, alignItems: 'center' },
+    modalHeader: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 16
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#ddd',
+        padding: 10,
+        borderRadius: 5,
+        marginBottom: 10
+    },
+    modalActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 10
+    },
+    submitButton: {
+        backgroundColor: '#800020',
+        padding: 10,
+        borderRadius: 5,
+        flex: 1,
+        marginRight: 5
+    },
+    cancelButton: {
+        backgroundColor: '#ddd',
+        padding: 10,
+        borderRadius: 5,
+        flex: 1,
+        marginLeft: 5,
+        alignItems: 'center'
+    },
+    buttonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        textAlign: 'center'
+    },
+    loader: {
+        padding: 16,
+        alignItems: 'center'
+    },
+    emptyText: {
+        textAlign: 'center',
+        marginTop: 20,
+        fontSize: 16,
+        color: '#555'
+    }
 });
+
+export default Cart;

@@ -59,7 +59,7 @@ export default function Explore() {
     };
 
     const handleSearchByCategory = (categoryId: any) => {
-        router.push({ pathname: '/Shop/ShopScreen', params: { search: categoryId } })
+        router.push({ pathname: '/(tabs)/explore/ShopScreen', params: { search: categoryId } })
     };
     // Render subcategories for each category
     const renderSubcategories = (subcategories: any[]) => (

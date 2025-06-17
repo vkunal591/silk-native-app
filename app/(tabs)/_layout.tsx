@@ -36,9 +36,8 @@ export default function TabLayout() {
                 tabBarActiveTintColor: Colors?.PRIMARY,  
                 tabBarInactiveTintColor: 'gray',  
                 tabBarStyle: { backgroundColor: Colors?.SHADE_WHITE }, 
-
+ 
             }} />
-
         </Tabs>
     )
 }

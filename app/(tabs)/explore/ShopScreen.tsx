@@ -8,30 +8,21 @@ import {
   Pressable,
   RefreshControl,
   ToastAndroid,
-  Animated,
   ActivityIndicator,
-  Button,
+  TextInput,
   Dimensions,
 } from "react-native";
-import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { fetchProducts, fetchCategory, addToCart, API_BASE_URL } from "@/services/api";
 import { Colors } from "@/contants/Colors";
-import RNPickerSelect from "react-native-picker-select";
 import Header from "@/components/Header";
 
-const { width, height } = Dimensions.get("screen")
+const { width, height } = Dimensions.get("screen");
 
 const SkeletonLoader = () => (
-  <View style={{ flexDirection: "row", gap: 25 }}><View style={styles.skeletonContainer}>
-    {[...Array(6)].map((_, index) => (
-      <View key={index} style={styles.skeletonCard}>
-        <View style={styles.skeletonImage} />
-        <View style={styles.skeletonText} />
-        <View style={styles.skeletonPrice} />
-      </View>
-    ))}
-  </View><View style={styles.skeletonContainer}>
+  <View style={{ flexDirection: "row", gap: 25 }}>
+    <View style={styles.skeletonContainer}>
       {[...Array(6)].map((_, index) => (
         <View key={index} style={styles.skeletonCard}>
           <View style={styles.skeletonImage} />
@@ -39,27 +30,25 @@ const SkeletonLoader = () => (
           <View style={styles.skeletonPrice} />
         </View>
       ))}
-    </View></View>
+    </View>
+    <View style={styles.skeletonContainer}>
+      {[...Array(6)].map((_, index) => (
+        <View key={index} style={styles.skeletonCard}>
+          <View style={styles.skeletonImage} />
+          <View style={styles.skeletonText} />
+          <View style={styles.skeletonPrice} />
+        </View>
+      ))}
+    </View>
+  </View>
 );
 
 const ShopScreen = () => {
   const router = useRouter();
   const [products, setProducts] = useState([]);
   const [category, setCategory] = useState([]);
-  const [filters, setFilters] = useState({
-    name: "",
-    description: "",
-    price: 0,
-    stock: 0,
-    subCategoryName: "",
-    subCategoryGender: "",
-    colors: "",
-    sizes: "",
-    createdAt: "",
-  });
+  const [priceRange, setPriceRange] = useState({ min: "", max: "" });
   const [filteredData, setFilteredData] = useState([]);
-  const [filterVisible, setFilterVisible] = useState(false);
-  const [slideAnim] = useState(new Animated.Value(-450));
   const [refreshing, setRefreshing] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -106,20 +95,19 @@ const ShopScreen = () => {
   };
 
   const filterData = () => {
-    const filtered = products.filter((item: any) =>
-      (filters.name ? item.name.toLowerCase().includes(filters.name.toLowerCase()) : true) &&
-      (filters.description ? item.description.toLowerCase().includes(filters.description.toLowerCase()) : true) &&
-      (filters.price ? item.price <= filters.price : true) &&
-      (filters.stock ? item.stock >= filters.stock : true) &&
-      (filters.subCategoryName ? item.subCategory.name.toLowerCase().includes(filters.subCategoryName.toLowerCase()) : true) &&
-      (filters.subCategoryGender ? item.subCategory.gender.toLowerCase().includes(filters.subCategoryGender.toLowerCase()) : true) &&
-      (filters.colors ? item.colors?.some((color: string) => color.toLowerCase().includes(filters.colors.toLowerCase())) : true) &&
-      (filters.sizes ? item.sizes?.some((size: string) => size.toLowerCase().includes(filters.sizes.toLowerCase())) : true) &&
-      (filters.createdAt ? item.createdAt.includes(filters.createdAt) : true)
-    );
+    const minPrice = priceRange.min ? parseFloat(priceRange.min) : 0;
+    const maxPrice = priceRange.max ? parseFloat(priceRange.max) : Infinity;
+
+    const filtered = products.filter((item: any) => {
+      const price = parseFloat(item.price);
+      return price >= minPrice && price <= maxPrice;
+    });
     setFilteredData(filtered);
-    setFilterVisible(false);
   };
+
+  useEffect(() => {
+    filterData();
+  }, [priceRange, products]);
 
   useFocusEffect(
     useCallback(() => {
@@ -162,7 +150,6 @@ const ShopScreen = () => {
     try {
       await addToCart(id, 1, name, price);
       ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
-      // router.push("/(tabs)/cart");
     } catch (error) {
       console.error("Error adding product to cart:", error);
       ToastAndroid.show("Could not add product to cart. Login and try again.", ToastAndroid.SHORT);
@@ -212,7 +199,6 @@ const ShopScreen = () => {
     setRefreshing(true);
     setPage(1);
     await getProducts(1, limit, searchInput);
-    filterData();
     setRefreshing(false);
   };
 
@@ -244,19 +230,24 @@ const ShopScreen = () => {
         setSearchInput={setSearchInput}
         onSearchClick={fetchProductList}
       />
-      {/* <View style={styles.paginationControls}>
-        <Text>Items per page: </Text>
-        <RNPickerSelect
-          onValueChange={(value) => handleLimitChange(value)}
-          items={[
-            { label: "10", value: 10 },
-            { label: "20", value: 20 },
-            { label: "50", value: 50 },
-          ]}
-          style={pickerSelectStyles}
-          value={limit}
+      <View style={styles.priceFilterContainer}>
+        <Text style={styles.filterLabel}>Price Range:</Text>
+        <TextInput
+          style={styles.priceInput}
+          placeholder="Min Price"
+          keyboardType="numeric"
+          value={priceRange.min}
+          onChangeText={(text) => setPriceRange({ ...priceRange, min: text })}
         />
-      </View> */}
+        <Text style={styles.filterLabel}>to</Text>
+        <TextInput
+          style={styles.priceInput}
+          placeholder="Max Price"
+          keyboardType="numeric"
+          value={priceRange.max}
+          onChangeText={(text) => setPriceRange({ ...priceRange, max: text })}
+        />
+      </View>
       {filteredData?.length !== 0 && (
         <FlatList
           data={filteredData}
@@ -281,10 +272,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 0,
-    marginHorizontal: "auto"
+    marginHorizontal: "auto",
   },
   cardContainer: {
-    // marginHorizontal: "auto",
     backgroundColor: "transparent",
     borderRadius: 10,
     margin: 7,
@@ -321,42 +311,31 @@ const styles = StyleSheet.create({
     color: "#FF6F61",
     marginTop: 5,
   },
-  filterPanel: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    bottom: 0,
-    right: 0,
-    backgroundColor: "white",
-    padding: 20,
-    width: "80%",
-    zIndex: 100,
-  },
-  filterClose: {
+  priceFilterContainer: {
     flexDirection: "row",
-    justifyContent: "space-evenly",
-    paddingRight: 30,
-  },
-  filterTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 20,
-    width: "100%",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
     alignItems: "center",
+    padding: 10,
+    backgroundColor: "#f9f9f9",
+  },
+  filterLabel: {
+    fontSize: 16,
+    marginHorizontal: 5,
+  },
+  priceInput: {
+    width: 80,
+    height: 40,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    marginHorizontal: 5,
   },
   skeletonContainer: {
-    // flex: 1,
-    width: '40%',
+    width: "40%",
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-around",
     padding: 10,
-    marginHorizontal: "auto",
-
   },
   skeletonCard: {
     width: width * 0.46,
@@ -386,34 +365,6 @@ const styles = StyleSheet.create({
   footerLoader: {
     paddingVertical: 20,
     alignItems: "center",
-  },
-  paginationControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-  },
-});
-
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "gray",
-    borderRadius: 4,
-    color: "black",
-    paddingRight: 30,
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderWidth: 0.5,
-    borderColor: "gray",
-    borderRadius: 8,
-    color: "black",
-    paddingRight: 30,
   },
 });
 
