@@ -27,6 +27,7 @@ import { useRouter } from 'expo-router';
 import { Entypo, Feather, Ionicons, Octicons } from '@expo/vector-icons';
 import { Colors } from '@/contants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCart } from '../context/CartContext';
 
 const defaultImage = require('../../assets/images/silk.png');
 
@@ -64,13 +65,15 @@ const Cart: React.FC = () => {
     });
     const [isAddressModalVisible, setIsAddressModalVisible] = useState(false);
     const [page, setPage] = useState(1);
-    const [limit] = useState(10);
+    const [limit] = useState(100000);
     const [isLoading, setIsLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [selectedItems, setSelectedItems] = useState<string[]>([]);
     const router = useRouter();
     const isFetching = useRef(false);
     const hasFetchedOnce = useRef(false);
+    const { removeFromCart, setCartItemsLocal, clearCart } = useCart();
+
 
     const fetchUserData = useCallback(async () => {
         try {
@@ -91,7 +94,7 @@ const Cart: React.FC = () => {
         try {
             const response = await fetchCart(`page=${pageNum}&limit=${limit}`);
             const data = response.data?.result || [];
-
+            setCartItemsLocal(data || [])
             setCartItems(prev => reset ? data : [...prev, ...data]);
             setHasMore(data.length === limit);
 
@@ -153,6 +156,8 @@ const Cart: React.FC = () => {
             }
         } catch (error) {
             // ToastAndroid.show('Error removing item', ToastAndroid.SHORT);
+        } finally {
+            await removeFromCart(id)
         }
     }, []);
 
@@ -200,6 +205,8 @@ const Cart: React.FC = () => {
             }
         } catch (error) {
             ToastAndroid.show('Error placing order. Please try again', ToastAndroid.SHORT);
+        } finally {
+            clearCart()
         }
     }, [cartItems, selectedItems, totalPrice, router]);
 
@@ -243,6 +250,9 @@ const Cart: React.FC = () => {
     useEffect(() => {
         calculateTotalPrice();
     }, [cartItems, selectedItems, calculateTotalPrice]);
+    useEffect(() => {
+        fetchCartData(1)
+    }, [])
 
     return (
         <View style={styles.container}>

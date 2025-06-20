@@ -158,7 +158,7 @@ const BannerSlider = ({ data = slides }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: width - 25,
+    // width: width - 25,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 10,
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 'auto',
   },
   slide: {
-    width: width - 25,
+    // width: width - 25,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 10,
@@ -198,10 +198,12 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   pagination: {
+    display: "none",
     flexDirection: 'row',
     position: 'absolute',
     bottom: 15,
     alignSelf: 'center',
+    backgroundColor: "#000"
   },
   dot: {
     width: 10,

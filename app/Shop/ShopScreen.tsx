@@ -19,6 +19,7 @@ import { fetchProducts, fetchCategory, addToCart, API_BASE_URL } from "@/service
 import { Colors } from "@/contants/Colors";
 import RNPickerSelect from "react-native-picker-select";
 import Header from "@/components/Header";
+import { useCart } from "../context/CartContext";
 
 const { width, height } = Dimensions.get("screen")
 
@@ -44,7 +45,7 @@ const SkeletonLoader = () => (
 
 const ShopScreen = () => {
   const router = useRouter();
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any>([]);
   const [category, setCategory] = useState([]);
   const [filters, setFilters] = useState({
     name: "",
@@ -57,7 +58,7 @@ const ShopScreen = () => {
     sizes: "",
     createdAt: "",
   });
-  const [filteredData, setFilteredData] = useState([]);
+  const [filteredData, setFilteredData] = useState<any>([]);
   const [filterVisible, setFilterVisible] = useState(false);
   const [slideAnim] = useState(new Animated.Value(-450));
   const [refreshing, setRefreshing] = useState(false);
@@ -67,6 +68,7 @@ const ShopScreen = () => {
   const [limit, setLimit] = useState(10);
   const [hasMore, setHasMore] = useState(true);
   const { search }: any = useLocalSearchParams();
+  const { addToCartLocal, cartItems } = useCart();
 
   const getProducts = async (pageNum = 1, pageLimit = limit, searchQuery = "") => {
     try {
@@ -83,8 +85,8 @@ const ShopScreen = () => {
         setProducts(res.data.result);
         setFilteredData(res.data.result);
       } else {
-        setProducts((prev) => [...prev, ...res.data.result]);
-        setFilteredData((prev) => [...prev, ...res.data.result]);
+        setProducts((prev: any) => [...prev, ...res.data.result]);
+        setFilteredData((prev: any) => [...prev, ...res.data.result]);
       }
     } catch (error) {
       console.error("Error loading products:", error);
@@ -160,8 +162,9 @@ const ShopScreen = () => {
 
   const handleAddToCart = async (id: any, name: string, price: string) => {
     try {
+      await addToCartLocal({ id, name, price })
       await addToCart(id, 1, name, price);
-      ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
+      // ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
       // router.push("/(tabs)/cart");
     } catch (error) {
       console.error("Error adding product to cart:", error);

@@ -22,6 +22,7 @@ import {
 import { Colors } from "@/contants/Colors";
 import { useFocusEffect } from "expo-router";
 import ImageViewer from "react-native-image-zoom-viewer";
+import { useCart } from "../context/CartContext";
 
 const imgPlaceholder = require("../../assets/images/women.jpeg");
 
@@ -35,6 +36,7 @@ const ProductDetailsScreen = () => {
   const [productList, setProductList] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [isFullScreen, setIsFullScreen] = useState(false); // State for full-screen modal
+  const { addToCartLocal, cartItems } = useCart();
 
   const fetchProductList = async () => {
     setIsLoading(true);
@@ -59,8 +61,9 @@ const ProductDetailsScreen = () => {
 
   const handleAddToCart = async (_id: any, name: string, price: string) => {
     try {
+      await addToCartLocal({ _id, name, price })
       await addToCart(_id, quantity, name, price).then(() => {
-        ToastAndroid.show("Product added to cart.", 2000);
+        // ToastAndroid.show("Product added to cart.", 2000);
       });
     } catch (error) {
       console.error("Error adding product to cart:", error);
@@ -90,11 +93,11 @@ const ProductDetailsScreen = () => {
             source={
               productData?.images
                 ? {
-                    uri: `${API_BASE_URL}${productData?.images.replace(
-                      /\\/g,
-                      "/"
-                    )}`,
-                  }
+                  uri: `${API_BASE_URL}${productData?.images.replace(
+                    /\\/g,
+                    "/"
+                  )}`,
+                }
                 : imgPlaceholder
             }
             style={styles.productImage}

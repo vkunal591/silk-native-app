@@ -27,6 +27,7 @@ import {
 } from "@expo/vector-icons";
 import { Colors } from "@/contants/Colors";
 import ImageViewer from "react-native-image-zoom-viewer";
+import { useCart } from "@/app/context/CartContext";
 
 const imgPlaceholder = require("../../../assets/images/women.jpeg");
 
@@ -40,6 +41,8 @@ const ProductDetailsScreen = () => {
   const [productList, setProductList] = useState<any[]>([]);
   const [quantity, setQuantity] = useState(1);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const { addToCartLocal, cartItems } = useCart();
+
 
   const fetchProductList = async () => {
     setIsLoading(true);
@@ -89,8 +92,9 @@ const ProductDetailsScreen = () => {
 
   const handleAddToCart = async (_id: any, name: string, price: string) => {
     try {
+      await addToCartLocal({ _id, name, price })
       await addToCart(_id, quantity, name, price);
-      ToastAndroid.show("Product added to cart.", 2000);
+      // ToastAndroid.show("Product added to cart.", 2000);
     } catch (error) {
       console.error("Add to cart error:", error);
       ToastAndroid.show("Error adding product to cart.", 2000);

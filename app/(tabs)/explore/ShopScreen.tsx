@@ -17,6 +17,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { fetchProducts, fetchCategory, addToCart, API_BASE_URL } from "@/services/api";
 import { Colors } from "@/contants/Colors";
 import Header from "@/components/Header";
+import { useCart } from "@/app/context/CartContext";
 
 const { width, height } = Dimensions.get("screen");
 
@@ -45,10 +46,10 @@ const SkeletonLoader = () => (
 
 const ShopScreen = () => {
   const router = useRouter();
-  const [products, setProducts] = useState([]);
-  const [category, setCategory] = useState([]);
+  const [products, setProducts] = useState<any>([]);
+  const [category, setCategory] = useState<any>([]);
   const [priceRange, setPriceRange] = useState({ min: "", max: "" });
-  const [filteredData, setFilteredData] = useState([]);
+  const [filteredData, setFilteredData] = useState<any>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -56,6 +57,7 @@ const ShopScreen = () => {
   const [limit, setLimit] = useState(10);
   const [hasMore, setHasMore] = useState(true);
   const { search }: any = useLocalSearchParams();
+  const { addToCartLocal, cartItems } = useCart();
 
   const getProducts = async (pageNum = 1, pageLimit = limit, searchQuery = "") => {
     try {
@@ -72,8 +74,8 @@ const ShopScreen = () => {
         setProducts(res.data.result);
         setFilteredData(res.data.result);
       } else {
-        setProducts((prev) => [...prev, ...res.data.result]);
-        setFilteredData((prev) => [...prev, ...res.data.result]);
+        setProducts((prev: any) => [...prev, ...res.data.result]);
+        setFilteredData((prev: any) => [...prev, ...res.data.result]);
       }
     } catch (error) {
       console.error("Error loading products:", error);
@@ -148,8 +150,9 @@ const ShopScreen = () => {
 
   const handleAddToCart = async (id: any, name: string, price: string) => {
     try {
+      await addToCartLocal({ id, name, price })
       await addToCart(id, 1, name, price);
-      ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
+      // ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
     } catch (error) {
       console.error("Error adding product to cart:", error);
       ToastAndroid.show("Could not add product to cart. Login and try again.", ToastAndroid.SHORT);

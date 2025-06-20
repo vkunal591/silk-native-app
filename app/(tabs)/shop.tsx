@@ -21,6 +21,7 @@ import {
   fetchCategory,
   fetchProducts,
 } from "@/services/api";
+import { useCart } from "../context/CartContext";
 
 const Shop = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -31,6 +32,7 @@ const Shop = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { addToCartLocal, cartItems } = useCart();
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -76,8 +78,9 @@ const Shop = () => {
   const handleAddToCart = useCallback(
     async (id: string, name: string, price: string) => {
       try {
+        await addToCartLocal({id,name,price})
         await addToCart(id, 1, name, price);
-        ToastAndroid.show("Product added to cart", 500);
+        // ToastAndroid.show("Product added to cart", 500);
         // router.push("/(tabs)/cart");
       } catch (error) {
         console.error("Error adding product to cart:", error);
@@ -131,7 +134,8 @@ const Shop = () => {
                 })
               }
             />
-            {/* {banners.length > 0 && <BannerSlider data={banners} />} */}
+            {banners.length > 0 && <BannerSlider data={banners} />}
+            {/* <BannerSlider /> */}
             {category.length > 0 && <TopCategories category={category} />}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 5 }} >
               <Text style={styles.sectionTitle}>New Items</Text> <TouchableOpacity
