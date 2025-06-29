@@ -8,12 +8,14 @@ import {
   Alert,
   ScrollView,
   ToastAndroid,
-  ActivityIndicator,  // Added for loading spinner
+  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import {
   fetchUserProfile,
   fetchUserLogout,
   fetchOrders,
+  API_BASE_URL,
 } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -23,43 +25,48 @@ import { Colors } from '@/contants/Colors';
 const Account = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [orders, setOrders] = useState([]);
-  const [activeTab, setActiveTab] = useState('To Pay');
-  const [isLoading, setIsLoading] = useState(false); // New state for loading indicator
-  const [error, setError] = useState(''); // New state for handling errors
+  const [activeTab, setActiveTab] = useState('View Orders');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [visibleOrder, setVisibleOrder] = useState(null);
+
   const router = useRouter();
 
   const loadUserProfile = async () => {
-    setIsLoading(true); // Set loading to true before fetching
-    setError(''); // Reset error state before fetching
+    setIsLoading(true);
+    setError('');
     try {
       const cachedProfile = await AsyncStorage.getItem('userData');
-      console.log(cachedProfile)
       if (cachedProfile) {
         setUserProfile(JSON.parse(cachedProfile));
       } else {
         const profile = await fetchUserProfile();
         setUserProfile(profile);
-        await AsyncStorage.setItem('userProfile', JSON.stringify(profile));
+        await AsyncStorage.setItem('userData', JSON.stringify(profile));
       }
     } catch (error) {
       setError('Error loading user profile. Please try again later.');
-      console.error('Error loading user profile:', error);
     } finally {
-      setIsLoading(false); // Set loading to false after fetching
+      setIsLoading(false);
     }
   };
 
-  const loadOrders = async (status: string) => {
-    setIsLoading(true); // Set loading to true before fetching
-    setError(''); // Reset error state before fetching
+  const loadOrders = async (id: string) => {
+    if (!id) return;
+    setIsLoading(true);
+    setError('');
     try {
-      const orders = await fetchOrders(status);
-      setOrders(orders);
+      const res = await fetchOrders(id);
+      if (!res?.success) {
+        ToastAndroid.show('Order Not Available', ToastAndroid.SHORT);
+        setOrders([]);
+      } else {
+        setOrders(res?.data?.result?.result || []);
+      }
     } catch (error) {
       setError('Error loading orders. Please try again later.');
-      console.error('Error loading orders:', error);
     } finally {
-      setIsLoading(false); // Set loading to false after fetching
+      setIsLoading(false);
     }
   };
 
@@ -67,22 +74,33 @@ const Account = () => {
     try {
       await fetchUserLogout();
       router.push('/auth/signin');
-      ToastAndroid.show('You have successfully logged out!', ToastAndroid.SHORT);
+      ToastAndroid.show('Logged out successfully!', ToastAndroid.SHORT);
     } catch (error) {
-      console.error('Error during logout:', error);
-      Alert.alert(
-        'Error',
-        'An error occurred during logout. Please try again.'
-      );
+      Alert.alert('Error', 'Logout failed. Please try again.');
     }
   };
 
   useFocusEffect(
     useCallback(() => {
       loadUserProfile();
-      loadOrders(activeTab);
-    }, [activeTab])
+    }, [])
   );
+
+
+  const formatDateTime = (dateString: any) => {
+    const options = {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    };
+    return new Date(dateString).toLocaleString('en-US', options);
+  };
+
+  const openModal = (order: any) => setVisibleOrder(order);
+  const closeModal = () => setVisibleOrder(null);
 
   return (
     <ScrollView style={styles.container}>
@@ -90,14 +108,14 @@ const Account = () => {
         <ActivityIndicator size="large" color={Colors.PRIMARY} style={styles.loadingIndicator} />
       ) : (
         <>
-          {/* Profile Section */}
+          {/* Profile */}
           <View style={styles.profileSection}>
             <Text style={styles.sectionTitle}>Profile</Text>
             <View style={styles.profileInfo}>
-              <EvilIcons name='user' size={60} style={styles.profileImage} />
+              <EvilIcons name="user" size={60} style={styles.profileImage} />
               <View style={styles.profileDetails}>
                 <Text style={styles.profileName}>{userProfile?.name || 'No name available'}</Text>
-                <Text style={styles.profileEmail}>{userProfile?.mobile || 'No mobile available'}</Text>
+                <Text style={styles.profileEmail}>{userProfile?.mobileNo || 'No mobile available'}</Text>
               </View>
               <TouchableOpacity onPress={handleLogout}>
                 <MaterialIcons name="logout" size={30} color={Colors.PRIMARY} />
@@ -105,33 +123,68 @@ const Account = () => {
             </View>
           </View>
 
-          {/* Orders Section */}
+          {/* Orders */}
           <View style={styles.ordersContainer}>
             <Text style={styles.sectionTitle}>My Orders</Text>
             <View style={styles.tabs}>
-              {['View Profile'].map((tab) => (
-                <TouchableOpacity
-                  key={tab}
-                  style={[styles.tab, activeTab === tab && styles.activeTab]}
-                  onPress={() => setActiveTab(tab)}>
-                  <Text style={styles.tabText}>{tab}</Text>
-                </TouchableOpacity>
-              ))}
+              <TouchableOpacity
+                style={[styles.tab, activeTab === 'View Orders' && styles.activeTab]}
+                onPress={() => {
+                  setActiveTab('View Orders');
+                  loadOrders(userProfile?.id);
+                }}>
+                <Text style={styles.tabText}>View Orders</Text>
+              </TouchableOpacity>
             </View>
+
             {error ? (
-              <Text style={styles.errorText}>{""}</Text> // Show error if it occurs
+              <Text style={styles.errorText}>{error}</Text>
             ) : (
-              <View style={styles.orderList}>
-                {orders.length > 0 ? (
-                  orders.map((order, index) => (
-                    <Text key={index}>{order}</Text>
-                  ))
-                ) : (
-                  <Text>No orders available</Text>
-                )}
-              </View>
+              orders.map((order: any, index: number) => (
+                <View key={order?._id || index} style={styles.orderCard}>
+                  <Text style={styles.userName}>Customer: {order.userName}</Text>
+                  <Text style={styles.mobile}>Mobile: {order.mobileNo}</Text>
+                  <Text style={styles.status}>Status: {order.status}</Text>
+                  <Text style={styles.amount}>Date: {formatDateTime(order.createdAt)}</Text>
+
+                  <TouchableOpacity style={styles.viewButton} onPress={() => openModal(order)}>
+                    <Text style={styles.viewButtonText}>View Items</Text>
+                  </TouchableOpacity>
+                </View>
+              ))
             )}
           </View>
+
+          {/* Modal */}
+          <Modal
+            visible={!!visibleOrder}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={closeModal}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalTitle}>Order Items</Text>
+                <ScrollView style={styles.scrollView}>
+                  {visibleOrder?.items?.map((item: any, i: number) => (
+                    <View key={i} style={styles.item}>
+                      <Image
+                        source={{ uri: `${API_BASE_URL}${item.product.images}` }}
+                        style={styles.image}
+                      />
+                      <View style={styles.details}>
+                        <Text style={styles.productName}>{item.product.name}</Text>
+                        <Text>Qty: {item.quantity}</Text>
+                        <Text>Price: ₹{item.product.price}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+                <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
         </>
       )}
     </ScrollView>
@@ -151,31 +204,71 @@ const styles = StyleSheet.create({
     borderColor: '#ccc',
     borderRadius: 8,
   },
-  activeTab: { backgroundColor: '#f8a5c2' },
-  tabText: { fontSize: 14 },
-  orderList: { marginTop: 8 },
+  activeTab: { backgroundColor: Colors.PRIMARY },
+  tabText: { fontSize: 14, color: '#fff' },
   profileSection: { margin: 16 },
   profileInfo: { flexDirection: 'row', alignItems: 'center' },
   profileImage: { width: 50, height: 50, borderRadius: 25, marginRight: 16 },
   profileDetails: { flex: 1 },
   profileName: { fontSize: 16, fontWeight: 'bold' },
   profileEmail: { fontSize: 14, color: '#888' },
-  guestButton: {
-    backgroundColor: '#F5038F',
-    paddingVertical: 12,
-    borderRadius: 25,
-    alignItems: 'center',
-  },
-  guestButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
   loadingIndicator: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 20 },
   errorText: { color: 'red', textAlign: 'center', marginTop: 20 },
+  orderCard: {
+    backgroundColor: '#f0f0f0',
+    padding: 15,
+    marginBottom: 15,
+    borderRadius: 10,
+  },
+  userName: { fontWeight: 'bold', fontSize: 16 },
+  mobile: { fontSize: 14 },
+  status: { color: 'orange', marginTop: 5 },
+  amount: { fontWeight: '600', marginBottom: 10 },
+  viewButton: {
+    backgroundColor: Colors.PRIMARY,
+    padding: 8,
+    borderRadius: 5,
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  viewButtonText: { color: '#fff', fontWeight: 'bold' },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    maxHeight: '80%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+  },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  scrollView: { maxHeight: 300 },
+  item: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    alignItems: 'center',
+    gap: 10,
+  },
+  image: {
+    width: 60,
+    height: 60,
+    borderRadius: 6,
+    backgroundColor: '#ccc',
+  },
+  details: { flex: 1 },
+  productName: { fontWeight: '500', fontSize: 15 },
+  closeButton: {
+    backgroundColor: '#e74c3c',
+    padding: 10,
+    marginTop: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  closeButtonText: { color: '#fff', fontWeight: 'bold' },
 });
 
 export default Account;
-
-

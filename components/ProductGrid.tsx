@@ -23,8 +23,8 @@ const ProductGrid = memo(({ title, itemData, onAddToCart, onViewDetails }: any) 
     console.error('Image failed to load');
   };
 
-  const renderItem = ({ item }: { item: { _id: string; images: string; name: string; price: number; rating?: number } }) => (
-    <Pressable onPress={() => onViewDetails(item)}>
+  const renderItem = ({ item, index }: { index: any, item: { _id: string; images: string; name: string; price: number; rating?: number } }) => (
+    <Pressable key={index} onPress={() => onViewDetails(item)}>
       <View style={styles.cardContainer}>
         {/* Product Image with Error Handling */}
         <Image
@@ -79,7 +79,7 @@ const Section = ({ title, children }: { title: string; children: React.ReactNode
     <View style={styles.sectionTitleContainer}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <TouchableOpacity
-        onPress={() => router.push({ pathname: '/Shop/ShopScreen' })}
+        onPress={() => router.push({ pathname: '/(tabs)/explore/ShopScreen' })}
       >
         <Text style={styles.sectionButton}>See All</Text>
       </TouchableOpacity>

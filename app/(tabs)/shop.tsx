@@ -78,7 +78,7 @@ const Shop = () => {
   const handleAddToCart = useCallback(
     async (id: string, name: string, price: string) => {
       try {
-        await addToCartLocal({id,name,price})
+        await addToCartLocal({ id, name, price })
         await addToCart(id, 1, name, price);
         // ToastAndroid.show("Product added to cart", 500);
         // router.push("/(tabs)/cart");
@@ -91,9 +91,9 @@ const Shop = () => {
   );
 
   const renderProductCard = useCallback(
-    ({ item }: any) => (
+    ({ item, index }: any) => (
       <ProductCard
-        key={item._id}
+        key={index}
         product={item}
         onViewDetails={handleViewDetails}
         onAddToCart={handleAddToCart}
@@ -129,7 +129,7 @@ const Shop = () => {
               setSearchInput={setSearchInput}
               onSearchClick={() =>
                 router.push({
-                  pathname: "/Shop/ShopScreen",
+                  pathname: "/(tabs)/explore/ShopScreen",
                   params: { search: searchInput },
                 })
               }
@@ -139,7 +139,7 @@ const Shop = () => {
             {category.length > 0 && <TopCategories category={category} />}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 5 }} >
               <Text style={styles.sectionTitle}>New Items</Text> <TouchableOpacity
-                onPress={() => router.push({ pathname: '/Shop/ShopScreen' })}
+                onPress={() => router.push({ pathname: '/(tabs)/explore/ShopScreen' })}
               ><Text>See All</Text></TouchableOpacity>
             </View>
             {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
@@ -149,7 +149,7 @@ const Shop = () => {
             <FlatList
               data={products}
               renderItem={renderProductCard}
-              keyExtractor={(item: any) => item._id.toString()}
+              keyExtractor={(item: any, index) => index.toString()}
               horizontal
               contentContainerStyle={styles.horizontalList}
               initialNumToRender={5}

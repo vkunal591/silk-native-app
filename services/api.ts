@@ -272,9 +272,9 @@ export const fetchPlaceOrder = async (items: any, totalAmount: any) => {
 };
 
 // Fetch Orders
-export const fetchOrders = async (status: any) => {
+export const fetchOrders = async (id: any) => {
   try {
-    const response = await api.get(`/api/orders?status=${status}`);
+    const response = await api.get(`/api/order/myorder/${id}`);
     return response.data;
   } catch (error: any) {
     console.error('Error fetching orders:', error);

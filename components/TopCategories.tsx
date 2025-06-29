@@ -25,7 +25,7 @@ const TopCategories: React.FC<TopCategoriesProps> = ({ category }) => {
           category.map((item: any, index: any) => (
             <TouchableOpacity
               key={index}
-              onPress={() => router.push({ pathname: '/Shop/ShopScreen', params: { search: item?._id } })}
+              onPress={() => router.push({ pathname: '/(tabs)/explore/ShopScreen', params: { search: item?._id } })}
               accessibilityLabel={`Go to ${item.name}`}
             >
               <View style={styles.item}>

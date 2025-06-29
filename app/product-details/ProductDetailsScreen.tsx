@@ -130,7 +130,7 @@ const ProductDetailsScreen = () => {
             <TouchableOpacity
               onPress={() =>
                 router.push({
-                  pathname: "/Shop/ShopScreen",
+                  pathname: "/(tabs)/explore/ShopScreen",
                   params: { search: productData?.category },
                 })
               }

@@ -134,7 +134,7 @@ const BannerSlider = ({ data = slides }) => {
         ref={flatListRef}
         data={data}
         renderItem={renderItem}
-        keyExtractor={(item) => item?.id}
+        keyExtractor={(item,index) =>index}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}

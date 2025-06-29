@@ -73,6 +73,7 @@ const styles = StyleSheet.create({
         borderColor: '#FFF',
     },
     infoContainer: {
+        width: "90%",
         marginTop: 10,
         alignItems: 'flex-start',
     },
