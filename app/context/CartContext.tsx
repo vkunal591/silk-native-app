@@ -46,7 +46,8 @@ export const CartProvider = ({ children }: any) => {
             setCartItemsLocal(data)
 
         } catch (error) {
-            ToastAndroid.show('Failed to load cart items', ToastAndroid.SHORT);
+            console.log(error)
+            // ToastAndroid.show('Failed to load cart items', ToastAndroid.SHORT);
         }
     }, []);
 

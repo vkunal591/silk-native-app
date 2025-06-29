@@ -150,7 +150,7 @@ const ShopScreen = () => {
 
   const handleAddToCart = async (id: any, name: string, price: string) => {
     try {
-      await addToCartLocal({ id, name, price })
+      await addToCartLocal({ _id: id, name, price })
       await addToCart(id, 1, name, price);
       // ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
     } catch (error) {
