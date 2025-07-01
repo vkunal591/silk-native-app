@@ -162,8 +162,17 @@ const ShopScreen = () => {
 
   const handleAddToCart = async (id: any, name: string, price: string) => {
     try {
-      await addToCartLocal({ _id:id, name, price })
-      await addToCart(id, 1, name, price);
+      const cartItem:any = {
+        _id: new Date().getTime().toString(), // temporary unique ID
+        user: "guest", // or user ID if logged in
+        items: [
+          {
+            product: { _id: id, name, price },
+            quantity: 1,
+          },
+        ],
+      };
+      addToCartLocal(cartItem); await addToCart(id, 1, name, price);
       // ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
       // router.push("/(tabs)/cart");
     } catch (error) {

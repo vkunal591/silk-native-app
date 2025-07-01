@@ -92,7 +92,17 @@ const ProductDetailsScreen = () => {
 
   const handleAddToCart = async (_id: any, name: string, price: string) => {
     try {
-      await addToCartLocal({ _id, name, price })
+      const cartItem: any = {
+        _id: new Date().getTime().toString(), // temporary unique ID
+        user: "guest", // or user ID if logged in
+        items: [
+          {
+            product: { _id: _id, name, price },
+            quantity: 1,
+          },
+        ],
+      };
+      addToCartLocal(cartItem);
       await addToCart(_id, quantity, name, price);
       // ToastAndroid.show("Product added to cart.", 2000);
     } catch (error) {

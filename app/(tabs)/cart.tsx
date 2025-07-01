@@ -99,26 +99,46 @@ const Cart: React.FC = () => {
             try {
                 const response = await fetchCart(`limit=100000`);
                 const data = response.data?.result || [];
-                const uniqueData = Array.from(
-                    new Map(data.map((item: CartItem) => [item.items[0].product._id, item])).values()
-                ) as CartItem[];
-                
+
+                const seen = new Set<string>();
+                const uniqueData: CartItem[] = [];
+                const duplicateIds: string[] = [];
+
+                for (const item of data) {
+                    const productId = item.items?.[0]?.product?._id;
+                    if (!productId) continue;
+
+                    if (seen.has(productId)) {
+                        if (item._id) duplicateIds.push(item._id);
+                    } else {
+                        seen.add(productId);
+                        uniqueData.push(item);
+                    }
+                }
+
+                // Remove duplicate cart items from backend in parallel
+                if (duplicateIds.length > 0) {
+                    await Promise.all(duplicateIds.map(id => fetchCartItemRemove(id)));
+                }
+
                 setCartItemsLocal(uniqueData);
-                setCartItems(reset ? uniqueData : [...cartItems, ...uniqueData]);
+                setCartItems(uniqueData);
                 setHasMore(data.length === 100000);
-                if (data.length === 0 && reset) {
+
+                if (uniqueData.length === 0 && reset) {
                     setError('Your cart is empty');
                 }
             } catch (error) {
                 setError('Failed to load cart items: ' + (error as Error).message);
-                ToastAndroid.show('Failed to load cart items', ToastAndroid.SHORT);
+                // ToastAndroid.show('Failed to load cart items', ToastAndroid.SHORT);
             } finally {
                 setIsLoading(false);
                 isFetching.current = false;
             }
         },
-        [cartItems, setCartItemsLocal]
+        [setCartItemsLocal]
     );
+
 
     const calculateTotalPrice = useCallback(() => {
         const total = cartItems
@@ -224,11 +244,11 @@ const Cart: React.FC = () => {
                 const removedItemIds = cartItems
                     .filter(item => selectedItems.includes(item.items[0]?.product?._id))
                     .map(item => item._id);
-                
-                await Promise.all(removedItemIds.map(id => fetchCartItemRemove(id)));
-                setCartItems(prev => prev.filter(item => !selectedItems.includes(item.items[0]?.product?._id)));
-                setSelectedItems([]);
-                clearCart();
+
+                removedItemIds.map(async (id) => { await fetchCartItemRemove(id) })
+                await setCartItems(prev => prev.filter(item => !selectedItems.includes(item.items[0]?.product?._id)));
+                await setSelectedItems([]);
+                await clearCart();
                 ToastAndroid.show('Order placed successfully!', ToastAndroid.SHORT);
                 router.push('/(tabs)/shop');
             } else {
@@ -406,15 +426,15 @@ const Cart: React.FC = () => {
                             />
                         ))}
                         <View style={styles.modalActions}>
-                            <TouchableOpacity 
-                                onPress={handleSubmitAddress} 
+                            <TouchableOpacity
+                                onPress={handleSubmitAddress}
                                 style={[styles.submitButton, isLoading && styles.disabledButton]}
                                 disabled={isLoading}
                             >
                                 <Text style={styles.buttonText}>{isLoading ? 'Submitting...' : 'Submit'}</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity 
-                                onPress={() => setIsAddressModalVisible(false)} 
+                            <TouchableOpacity
+                                onPress={() => setIsAddressModalVisible(false)}
                                 style={styles.cancelButton}
                                 disabled={isLoading}
                             >

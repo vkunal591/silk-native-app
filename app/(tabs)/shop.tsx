@@ -31,8 +31,9 @@ const Shop = () => {
   const [searchInput, setSearchInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const router = useRouter();
-  const { addToCartLocal, cartItems } = useCart();
+  const { addToCartLocal } = useCart();
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
@@ -43,11 +44,11 @@ const Shop = () => {
         fetchBanners(),
         fetchCategory(),
       ]);
-      setProducts(productsData.data.result);
-      setBanners(bannersData.data.result);
-      setCategory(categoryData.data.result);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+      setProducts(productsData.data.result || []);
+      setBanners(bannersData.data.result || []);
+      setCategory(categoryData.data.result || []);
+    } catch (err) {
+      console.error("Error fetching data:", err);
       setError("Failed to load data. Please try again later.");
     } finally {
       setIsLoading(false);
@@ -70,30 +71,37 @@ const Shop = () => {
         pathname: "/(tabs)/explore/ProductDetailsScreen",
         params: { product: JSON.stringify(product) },
       });
-      // ToastAndroid.show(`View Product ${product?.name}`, ToastAndroid.SHORT);
     },
     [router]
   );
 
   const handleAddToCart = useCallback(
-    async (id: string, name: string, price: string) => {
+    async (id: string, name: string, price: number) => {
       try {
-        await addToCartLocal({ id, name, price })
+        const cartItem = {
+          _id: new Date().getTime().toString(), // temporary unique ID
+          user: "guest", // or user ID if logged in
+          items: [
+            {
+              product: { _id: id, name, price },
+              quantity: 1,
+            },
+          ],
+        };
+        addToCartLocal(cartItem);
         await addToCart(id, 1, name, price);
-        // ToastAndroid.show("Product added to cart", 500);
-        // router.push("/(tabs)/cart");
+        // ToastAndroid.show("Product added to cart", ToastAndroid.SHORT);
       } catch (error) {
         console.error("Error adding product to cart:", error);
         setError("Could not add product to cart. Please try again.");
       }
     },
-    [router]
+    [addToCartLocal]
   );
 
   const renderProductCard = useCallback(
-    ({ item, index }: any) => (
+    ({ item }: any) => (
       <ProductCard
-        key={index}
         product={item}
         onViewDetails={handleViewDetails}
         onAddToCart={handleAddToCart}
@@ -107,7 +115,7 @@ const Shop = () => {
       <FlatList
         data={products}
         renderItem={renderProductCard}
-        keyExtractor={(item: any, index: any) => index}
+        keyExtractor={(item: any) => item._id?.toString() || Math.random().toString()}
         numColumns={2}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -116,11 +124,6 @@ const Shop = () => {
         initialNumToRender={8}
         maxToRenderPerBatch={10}
         removeClippedSubviews
-        getItemLayout={(data, index) => ({
-          length: 150,
-          offset: 150 * index,
-          index,
-        })}
         ListHeaderComponent={
           <>
             <Header
@@ -135,25 +138,19 @@ const Shop = () => {
               }
             />
             {banners.length > 0 && <BannerSlider data={banners} />}
-            {/* <BannerSlider /> */}
             {category.length > 0 && <TopCategories category={category} />}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 5 }} >
-              <Text style={styles.sectionTitle}>New Items</Text> <TouchableOpacity
-                onPress={() => router.push({ pathname: '/(tabs)/explore/ShopScreen' })}
-              ><Text>See All</Text></TouchableOpacity>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>New Items</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  router.push({ pathname: "/(tabs)/explore/ShopScreen" })
+                }
+              >
+                <Text style={styles.linkText}>See All</Text>
+              </TouchableOpacity>
             </View>
             {isLoading && <ActivityIndicator size="large" color="#0000ff" />}
             {error && <Text style={styles.errorText}>{error}</Text>}
-
-            {/* New Items - Horizontal Scroll */}
-            <FlatList
-              data={products}
-              renderItem={renderProductCard}
-              keyExtractor={(item: any, index) => index.toString()}
-              horizontal
-              contentContainerStyle={styles.horizontalList}
-              initialNumToRender={5}
-            />
           </>
         }
         ListFooterComponent={
@@ -172,8 +169,21 @@ const Shop = () => {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#f2f2f2", padding: 10 },
   sectionTitle: { fontSize: 18, fontWeight: "bold", marginVertical: 10 },
-  errorText: { color: "blue", textAlign: "center", marginVertical: 10 },
-  horizontalList: { paddingLeft: 0, paddingBottom: 10 },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 5,
+  },
+  linkText: {
+    color: "#007bff",
+    fontWeight: "500",
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginVertical: 10,
+  },
 });
 
 export default Shop;
